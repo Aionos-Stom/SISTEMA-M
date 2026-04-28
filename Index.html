@@ -1,0 +1,1025 @@
+﻿<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administración Peravia — Sistema de Gestión</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%232A8A8A'>P</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     SECCIÓN DE AUTENTICACIÓN
+══════════════════════════════════════════════════════ -->
+<section id="authSection" role="main">
+
+  <!-- Panel izquierdo — Identidad de marca -->
+  <div class="auth-side" aria-hidden="true">
+    <div class="auth-side-inner">
+      <div class="auth-deco-circle auth-deco-1"></div>
+      <div class="auth-deco-circle auth-deco-2"></div>
+      <div class="auth-deco-circle auth-deco-3"></div>
+
+      <div class="auth-hero">
+        <div class="auth-hero-emblem">
+          <span class="auth-hero-initials">MG</span>
+        </div>
+        <h1 class="auth-hero-title">Administración<br><em>Peravia</em></h1>
+        <p class="auth-hero-subtitle">Sistema Integral de Gestión Territorial</p>
+        <div class="auth-hero-location">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Provincia de Peravia · República Dominicana
+        </div>
+        <div class="auth-hero-stats">
+          <div class="auth-stat-item">
+            <strong>Baní</strong>
+            <span>Capital provincial</span>
+          </div>
+          <div class="auth-stat-divider"></div>
+          <div class="auth-stat-item">
+            <strong>8</strong>
+            <span>Municipios</span>
+          </div>
+          <div class="auth-stat-divider"></div>
+          <div class="auth-stat-item">
+            <strong>2026</strong>
+            <span>Gestión activa</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Panel derecho — Formularios -->
+  <div class="auth-main">
+    <div class="auth-main-inner">
+
+      <div class="auth-main-header">
+        <div class="auth-brand-pill">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Plataforma Segura
+        </div>
+        <h2>Bienvenido al sistema</h2>
+        <p>Ingrese sus credenciales para acceder al panel de gestión de Peravia.</p>
+      </div>
+
+      <!-- Pestañas -->
+      <div class="tabs" role="tablist">
+        <button class="tab active" id="showLogin" type="button" role="tab" aria-selected="true">Iniciar sesión</button>
+        <button class="tab" id="showRegister" type="button" role="tab" aria-selected="false">Registrar usuario</button>
+      </div>
+
+      <!-- FORMULARIO DE LOGIN -->
+      <form id="loginForm" class="form active" novalidate>
+        <div class="input-group">
+          <label for="loginUser">Correo o nombre de usuario</label>
+          <input type="text" id="loginUser" placeholder="correo@dominio.com o usuario" required autocomplete="username" />
+        </div>
+        <div class="input-group">
+          <label for="loginPassword">Contraseña</label>
+          <input type="password" id="loginPassword" placeholder="Ingrese su contraseña" required autocomplete="current-password" />
+        </div>
+        <div class="input-group" style="margin-bottom: 0;">
+          <button type="button" class="text-btn" id="forgotPasswordBtn">¿Olvidaste tu contraseña?</button>
+        </div>
+        <button type="submit" class="primary-btn" style="margin-top:4px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Entrar al sistema
+        </button>
+        <p class="helper-text">Acceso exclusivo para personal autorizado de Peravia.</p>
+      </form>
+
+      <!-- FORMULARIO DE REGISTRO -->
+      <form id="registerForm" class="form" novalidate>
+        <div class="form-head">
+          <h2 id="registerFormTitle">Crear nuevo usuario</h2>
+          <button type="button" class="text-btn hidden" id="cancelEditUserBtn">Cancelar</button>
+        </div>
+        <input type="hidden" id="editingUserId" />
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="registerName">Nombre completo</label>
+            <input type="text" id="registerName" placeholder="Nombre del usuario" required autocomplete="name" />
+          </div>
+          <div class="input-group">
+            <label for="registerUsername">Usuario</label>
+            <input type="text" id="registerUsername" placeholder="Nombre de usuario" required autocomplete="off" />
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="registerEmail">Correo personal</label>
+            <input type="email" id="registerEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
+          </div>
+          <div class="input-group">
+            <label for="registerPhone">Teléfono</label>
+            <input type="text" id="registerPhone" placeholder="809-000-0000" required inputmode="tel" />
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="registerRole">Rol</label>
+            <select id="registerRole" required>
+              <option value="">Seleccione</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="registerProvince">Municipio asignado</label>
+            <select id="registerProvince" required>
+              <option value="">Seleccione municipio</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="input-group">
+            <label for="registerRegion">Región</label>
+            <input type="text" id="registerRegion" placeholder="Región" />
+          </div>
+          <div class="input-group">
+            <label for="registerMunicipio">Municipio</label>
+            <input type="text" id="registerMunicipio" placeholder="Municipio" />
+          </div>
+          <div class="input-group">
+            <label for="registerDistrito">Distrito</label>
+            <input type="text" id="registerDistrito" placeholder="Distrito" />
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="registerZone">Zona o demarcación</label>
+          <input type="text" id="registerZone" placeholder="Zona asignada" required />
+        </div>
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="registerPassword">Contraseña</label>
+            <input type="password" id="registerPassword" placeholder="Cree una contraseña" required autocomplete="new-password" />
+          </div>
+          <div class="input-group">
+            <label for="registerPasswordConfirm">Confirmar contraseña</label>
+            <input type="password" id="registerPasswordConfirm" placeholder="Repita la contraseña" required autocomplete="new-password" />
+          </div>
+        </div>
+        <button type="submit" class="primary-btn" id="saveUserBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Crear usuario
+        </button>
+        <p class="helper-text" id="firstUserHint">El sistema permite crear usuarios con distintos niveles de acceso.</p>
+      </form>
+
+      <div class="status-message" id="authMessage" role="alert" aria-live="polite"></div>
+
+    </div>
+
+    <footer class="auth-footer">
+      <div class="auth-footer-secure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Acceso seguro · Datos protegidos
+      </div>
+      <span class="auth-footer-copy">© 2026 Administración Peravia</span>
+    </footer>
+  </div>
+
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SHELL DE LA APLICACIÓN (Dashboard)
+══════════════════════════════════════════════════════ -->
+<div class="app-shell hidden" id="dashboardSection">
+
+  <!-- Overlay de sidebar móvil -->
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+  <!-- ── BARRA LATERAL ──────────────────────────────── -->
+  <aside class="sidebar" id="appSidebar" role="navigation" aria-label="Navegación principal">
+    <div class="sidebar-header">
+      <div class="sidebar-emblem">MG</div>
+      <div class="sidebar-brand">
+        <strong>Adm. Peravia</strong>
+        <span>Sistema de Gestión</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-group-header open" data-target="navGroupMain" role="button" tabindex="0" aria-expanded="true">
+        <span>Panel principal</span>
+        <svg class="nav-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="nav-group" id="navGroupMain">
+        <button class="nav-item active" data-panel="overview" type="button" aria-current="page">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <span class="nav-label">Resumen</span>
+        </button>
+        <button class="nav-item" data-panel="registro" type="button">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <span class="nav-label">Nuevo Registro</span>
+        </button>
+        <button class="nav-item" data-panel="consulta" type="button">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span class="nav-label">Consulta</span>
+        </button>
+      </div>
+
+      <div class="nav-group-header open" data-target="navGroupAdmin" role="button" tabindex="0" aria-expanded="true">
+        <span>Administración</span>
+        <svg class="nav-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="nav-group" id="navGroupAdmin">
+        <button class="nav-item" data-panel="usuarios" type="button" id="manageUsersBtn">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="nav-label">Usuarios</span>
+        </button>
+        <button class="nav-item section-hidden" data-panel="auditoria" type="button" id="navAuditBtn">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          <span class="nav-label">Auditoría</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebarUserBox">
+        <div class="sidebar-avatar" id="sidebarAvatar">—</div>
+        <div class="sidebar-user-info">
+          <strong id="sidebarUserName">Usuario</strong>
+          <span id="sidebarUserRole">Rol</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── ÁREA PRINCIPAL ─────────────────────────────── -->
+  <div class="app-main">
+
+    <!-- TOPBAR -->
+    <header class="topbar" role="banner">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggleBtn" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="topbar-title-group">
+          <span class="panel-tag">Peravia · Panel interno</span>
+          <h2>Centro de control</h2>
+        </div>
+      </div>
+
+      <div class="topbar-search" role="search">
+        <svg class="topbar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="topbarSearchInput" placeholder="Buscar registros, usuarios, municipios…" aria-label="Búsqueda global" />
+      </div>
+
+      <div class="topbar-actions">
+        <button class="theme-toggle" id="themeToggleBtn" type="button" title="Cambiar tema" aria-label="Cambiar modo claro/oscuro">
+          <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button class="secondary-btn" id="exportBtn" type="button" aria-label="Descargar informe Excel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar
+        </button>
+        <button class="danger-btn" id="logoutBtn" type="button" aria-label="Cerrar sesión">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Salir
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="app-content" id="appContent">
+      <p id="currentUserInfo" style="display:none"></p>
+
+      <!-- ════════════════════════════
+           PANEL: RESUMEN
+      ═══════════════════════════════ -->
+      <section class="content-panel" id="panelOverview">
+        <div class="panel-heading">
+          <div class="panel-heading-text">
+            <h3>Resumen general de Peravia</h3>
+            <p>Estadísticas y métricas del sistema territorial.</p>
+          </div>
+        </div>
+
+        <section class="stats-grid" aria-label="Métricas principales">
+          <article class="stat-card stat-teal">
+            <div class="stat-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <span>Total de registros</span>
+            <h3 id="totalVoters">0</h3>
+            <div class="stat-card-delta">Según nivel de acceso</div>
+          </article>
+
+          <article class="stat-card stat-orange">
+            <div class="stat-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+            </div>
+            <span>Usuarios del sistema</span>
+            <h3 id="totalUsers">0</h3>
+            <div class="stat-card-delta">Según permisos del rol</div>
+          </article>
+
+          <article class="stat-card stat-peach">
+            <div class="stat-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <span>Registros del día</span>
+            <h3 id="todayVoters">0</h3>
+            <div class="stat-card-delta">Últimas 24 horas</div>
+          </article>
+
+          <article class="stat-card stat-beige">
+            <div class="stat-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+            </div>
+            <span>Municipios activos</span>
+            <h3 id="activeProvinces">0</h3>
+            <div class="stat-card-delta">Con registros activos</div>
+          </article>
+        </section>
+
+        <section class="analytics-grid" aria-label="Análisis territorial">
+          <div class="card chart-card">
+            <div class="card-header row-between">
+              <div>
+                <h3>Registros por municipio</h3>
+                <p>Distribución territorial de Peravia.</p>
+              </div>
+              <span class="badge" id="chartSummaryBadge">0 activos</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="provinceChart" height="300" role="img" aria-label="Gráfica de registros por municipio"></canvas>
+            </div>
+          </div>
+
+          <div class="card ranking-card">
+            <div class="card-header">
+              <h3>Ranking territorial</h3>
+              <p>Municipios con mayor cantidad de registros.</p>
+            </div>
+            <div class="ranking-list" id="provinceRanking" role="list"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ════════════════════════════
+           PANEL: NUEVO REGISTRO
+      ═══════════════════════════════ -->
+      <section class="content-panel" id="panelRegistro">
+        <div class="panel-heading">
+          <div class="panel-heading-text">
+            <h3>Registro de ciudadanos</h3>
+            <p>Complete los datos del ciudadano o simpatizante de Peravia.</p>
+          </div>
+        </div>
+
+        <div class="main-grid">
+          <div class="card form-card">
+            <div class="card-header">
+              <div class="form-head">
+                <div>
+                  <h3 id="voterFormTitle">Registrar ciudadano / simpatizante</h3>
+                  <p id="voterFormDescription">Complete todos los datos requeridos con precisión.</p>
+                </div>
+                <button type="button" class="text-btn hidden" id="cancelEditVoterBtn">Cancelar</button>
+              </div>
+            </div>
+
+            <form id="voterForm" novalidate>
+              <input type="hidden" id="editingVoterId" />
+              <div class="grid-2">
+                <div class="input-group">
+                  <label for="voterName">Nombre completo</label>
+                  <input type="text" id="voterName" required autocomplete="off" />
+                </div>
+                <div class="input-group">
+                  <label for="voterCedula">Cédula</label>
+                  <input type="text" id="voterCedula" placeholder="000-0000000-0" required inputmode="numeric" />
+                </div>
+              </div>
+              <div class="grid-3">
+                <div class="input-group">
+                  <label for="voterPhone">Teléfono</label>
+                  <input type="text" id="voterPhone" placeholder="809-000-0000" required inputmode="tel" />
+                </div>
+                <div class="input-group">
+                  <label for="voterProvince">Municipio</label>
+                  <select id="voterProvince" required>
+                    <option value="">Seleccione</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="voterRegion">Región</label>
+                  <input type="text" id="voterRegion" placeholder="Región" />
+                </div>
+              </div>
+              <div class="grid-3">
+                <div class="input-group">
+                  <label for="voterMunicipio">Municipio/Sección</label>
+                  <input type="text" id="voterMunicipio" required />
+                </div>
+                <div class="input-group">
+                  <label for="voterDistrito">Distrito</label>
+                  <input type="text" id="voterDistrito" />
+                </div>
+                <div class="input-group">
+                  <label for="voterZone">Zona</label>
+                  <input type="text" id="voterZone" required />
+                </div>
+              </div>
+              <div class="grid-3">
+                <div class="input-group">
+                  <label for="voterSector">Sector</label>
+                  <input type="text" id="voterSector" required />
+                </div>
+                <div class="input-group">
+                  <label for="voterMesa">Mesa</label>
+                  <input type="text" id="voterMesa" required />
+                </div>
+                <div class="input-group">
+                  <label for="voterRecinto">Recinto</label>
+                  <input type="text" id="voterRecinto" required />
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="voterObservation">Observación</label>
+                <textarea id="voterObservation" rows="3" placeholder="Condición o nota relevante"></textarea>
+              </div>
+              <button type="submit" class="primary-btn" id="saveVoterBtn" style="margin-top: 12px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Guardar registro
+              </button>
+            </form>
+
+            <div class="status-message" id="voterMessage" role="alert" aria-live="polite"></div>
+          </div>
+
+          <div class="card search-card" id="consultaQuickCard">
+            <div class="card-header">
+              <h3>Consulta rápida</h3>
+              <p>Filtre por nombre, cédula, registrador o territorio.</p>
+            </div>
+            <div class="input-group">
+              <label for="searchInput">Búsqueda general</label>
+              <input type="search" id="searchInput" placeholder="Nombre, cédula, teléfono, recinto…" />
+            </div>
+            <div class="grid-2 compact-grid">
+              <div class="input-group">
+                <label for="filterProvince">Municipio</label>
+                <select id="filterProvince"><option value="">Todos</option></select>
+              </div>
+              <div class="input-group">
+                <label for="filterMunicipio">Sección</label>
+                <select id="filterMunicipio"><option value="">Todas</option></select>
+              </div>
+            </div>
+            <div class="grid-2 compact-grid">
+              <div class="input-group">
+                <label for="filterSector">Sector</label>
+                <select id="filterSector"><option value="">Todos</option></select>
+              </div>
+              <div class="input-group">
+                <label for="filterMesa">Mesa</label>
+                <select id="filterMesa"><option value="">Todas</option></select>
+              </div>
+            </div>
+            <div class="grid-2 compact-grid">
+              <div class="input-group">
+                <label for="filterRole">Rol registrador</label>
+                <select id="filterRole"><option value="">Todos</option></select>
+              </div>
+              <div class="input-group">
+                <label for="filterRegistrar">Registrador</label>
+                <select id="filterRegistrar"><option value="">Todos</option></select>
+              </div>
+            </div>
+            <button class="clear-btn" id="clearFiltersBtn" type="button" style="margin-top: 8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Limpiar filtros
+            </button>
+            <div class="search-results" id="searchResults" role="list" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════
+           PANEL: CONSULTA
+      ═══════════════════════════════ -->
+      <section class="content-panel" id="panelConsulta">
+        <div class="card table-card">
+          <div class="card-header row-between">
+            <div>
+              <h3>Registros de Peravia</h3>
+              <p>Listado consolidado según nivel de acceso del usuario.</p>
+            </div>
+            <div class="badge-box">
+              <span class="badge" id="filteredCountBadge">0 resultados</span>
+            </div>
+          </div>
+
+          <div class="table-wrap table-wrap-fixed">
+            <table role="grid" aria-label="Tabla de registros">
+              <thead>
+                <tr>
+                  <th scope="col">Nombre</th>
+                  <th scope="col">Cédula</th>
+                  <th scope="col">Teléfono</th>
+                  <th scope="col">Región</th>
+                  <th scope="col">Municipio</th>
+                  <th scope="col">Sección</th>
+                  <th scope="col">Distrito</th>
+                  <th scope="col">Zona</th>
+                  <th scope="col">Sector</th>
+                  <th scope="col">Mesa</th>
+                  <th scope="col">Recinto</th>
+                  <th scope="col">Observación</th>
+                  <th scope="col">Registrado por</th>
+                  <th scope="col">Rol</th>
+                  <th scope="col">Fecha</th>
+                  <th scope="col" id="voterActionsHead">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="votersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════
+           PANEL: USUARIOS
+      ═══════════════════════════════ -->
+      <section class="card users-card section-hidden" id="usersSection">
+        <div class="card-header row-between">
+          <div>
+            <h3>Usuarios del sistema</h3>
+            <p>Gestión interna de accesos y perfiles de Peravia.</p>
+          </div>
+          <span class="soft-note" id="userPermissionsNote">Visualización según permisos</span>
+        </div>
+        <div class="table-wrap table-wrap-fixed">
+          <table role="grid" aria-label="Tabla de usuarios">
+            <thead>
+              <tr>
+                <th scope="col">Nombre</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Correo</th>
+                <th scope="col">Rol</th>
+                <th scope="col">Teléfono</th>
+                <th scope="col">Región</th>
+                <th scope="col">Municipio</th>
+                <th scope="col">Sección</th>
+                <th scope="col">Distrito</th>
+                <th scope="col">Zona</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════
+           PANEL: AUDITORÍA
+      ═══════════════════════════════ -->
+      <section class="card audit-card section-hidden" id="panelAudit" aria-label="Historial de auditoría">
+        <div class="card-header row-between">
+          <div>
+            <h3>Historial de auditoría</h3>
+            <p>Registro inmutable de toda la actividad del sistema.</p>
+          </div>
+          <button class="secondary-btn" id="auditExportBtn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar historial
+          </button>
+        </div>
+
+        <div class="audit-stats" id="auditStats"></div>
+
+        <div class="audit-filters">
+          <input type="search" id="auditSearch" placeholder="Buscar actor, objetivo, detalles…" aria-label="Buscar en auditoría" />
+          <select id="auditFilterAction" aria-label="Filtrar por acción">
+            <option value="">Todas las acciones</option>
+            <option value="SESSION_LOGIN">Inicio de sesión</option>
+            <option value="SESSION_LOGOUT">Cierre de sesión</option>
+            <option value="USER_CREATE">Usuario creado</option>
+            <option value="USER_EDIT">Usuario editado</option>
+            <option value="USER_APPROVE">Usuario aprobado</option>
+            <option value="USER_DELETE">Usuario eliminado</option>
+            <option value="VOTER_CREATE">Registro creado</option>
+            <option value="VOTER_EDIT">Registro editado</option>
+            <option value="VOTER_DELETE">Registro eliminado</option>
+            <option value="DATA_EXPORT">Exportación de datos</option>
+            <option value="VOTER_DUPLICATE">Intento de duplicado</option>
+          </select>
+          <select id="auditFilterActor" aria-label="Filtrar por actor">
+            <option value="">Todos los actores</option>
+          </select>
+          <input type="date" id="auditFilterFrom" aria-label="Fecha desde" />
+          <input type="date" id="auditFilterTo" aria-label="Fecha hasta" />
+        </div>
+
+        <div class="table-wrap table-wrap-fixed">
+          <table role="grid" aria-label="Historial de auditoría">
+            <thead>
+              <tr>
+                <th scope="col">Fecha / Hora</th>
+                <th scope="col">Actor</th>
+                <th scope="col">Rol</th>
+                <th scope="col">Acción</th>
+                <th scope="col">Objetivo</th>
+                <th scope="col">Detalles</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody"></tbody>
+          </table>
+        </div>
+        <div class="audit-pagination" id="auditPagination"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: EDITAR USUARIO
+═════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="userEditModal" role="dialog" aria-modal="true" aria-labelledby="userEditModalTitle">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div>
+        <h3 id="userEditModalTitle">Editar usuario del sistema</h3>
+        <p>Actualice la información del usuario sin salir del dashboard.</p>
+      </div>
+      <button type="button" class="modal-close-btn" id="closeUserEditModalBtn" aria-label="Cerrar">×</button>
+    </div>
+    <form id="userEditForm" novalidate>
+      <input type="hidden" id="editUserId" />
+      <div class="grid-2">
+        <div class="input-group">
+          <label for="editUserName">Nombre completo</label>
+          <input type="text" id="editUserName" placeholder="Nombre del usuario" required />
+        </div>
+        <div class="input-group">
+          <label for="editUserUsername">Usuario</label>
+          <input type="text" id="editUserUsername" placeholder="Nombre de usuario" required />
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:14px">
+        <div class="input-group">
+          <label for="editUserEmail">Correo personal</label>
+          <input type="email" id="editUserEmail" placeholder="correo@ejemplo.com" required />
+        </div>
+        <div class="input-group">
+          <label for="editUserPhone">Teléfono</label>
+          <input type="text" id="editUserPhone" placeholder="809-000-0000" required />
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:14px">
+        <div class="input-group">
+          <label for="editUserRole">Rol</label>
+          <select id="editUserRole" required>
+            <option value="">Seleccione</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="editUserProvince">Municipio asignado</label>
+          <select id="editUserProvince" required>
+            <option value="">Seleccione municipio</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:14px">
+        <div class="input-group">
+          <label for="editUserRegion">Región</label>
+          <input type="text" id="editUserRegion" placeholder="Región" required />
+        </div>
+        <div class="input-group">
+          <label for="editUserMunicipio">Sección</label>
+          <input type="text" id="editUserMunicipio" placeholder="Sección" required />
+        </div>
+        <div class="input-group">
+          <label for="editUserDistrito">Distrito</label>
+          <input type="text" id="editUserDistrito" placeholder="Distrito" required />
+        </div>
+      </div>
+      <div class="input-group" style="margin-top:14px">
+        <label for="editUserZone">Zona o demarcación</label>
+        <input type="text" id="editUserZone" placeholder="Zona asignada" required />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="clear-btn" id="cancelUserEditBtn">Cancelar</button>
+        <button type="submit" class="primary-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar cambios
+        </button>
+      </div>
+      <div class="status-message" id="userEditMessage" role="alert" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: RECUPERAR CONTRASEÑA
+═════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="forgotPasswordModal" role="dialog" aria-modal="true" aria-labelledby="forgotPasswordModalTitle">
+  <div class="modal-card" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <h3 id="forgotPasswordModalTitle">Recuperar contraseña</h3>
+        <p>Ingrese su correo y le enviaremos un enlace de restablecimiento.</p>
+      </div>
+      <button type="button" class="modal-close-btn" id="closeForgotModalBtn" aria-label="Cerrar">×</button>
+    </div>
+    <form id="forgotForm" novalidate style="margin-top:16px">
+      <div class="input-group">
+        <label for="forgotEmail">Correo electrónico</label>
+        <input type="email" id="forgotEmail" placeholder="correo@ejemplo.com" required autocomplete="email" />
+      </div>
+      <div class="modal-actions" style="margin-top:18px">
+        <button type="button" class="clear-btn" id="cancelForgotBtn">Cancelar</button>
+        <button type="submit" class="primary-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>
+          Enviar enlace
+        </button>
+      </div>
+      <div class="status-message" id="forgotMessage" role="alert" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: NUEVA CONTRASEÑA
+═════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="resetPasswordModal" role="dialog" aria-modal="true" aria-labelledby="resetPasswordModalTitle">
+  <div class="modal-card" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <h3 id="resetPasswordModalTitle">Establecer nueva contraseña</h3>
+        <p>Ingrese y confirme su nueva contraseña.</p>
+      </div>
+    </div>
+    <form id="resetForm" novalidate style="margin-top:16px">
+      <div class="input-group">
+        <label for="resetPassword">Nueva contraseña</label>
+        <input type="password" id="resetPassword" placeholder="Nueva contraseña (mín. 6 caracteres)" required autocomplete="new-password" />
+      </div>
+      <div class="input-group" style="margin-top:14px">
+        <label for="resetPasswordConfirm">Confirmar contraseña</label>
+        <input type="password" id="resetPasswordConfirm" placeholder="Repita la nueva contraseña" required autocomplete="new-password" />
+      </div>
+      <div class="modal-actions" style="margin-top:18px">
+        <button type="submit" class="primary-btn" style="width:100%">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Cambiar contraseña
+        </button>
+      </div>
+      <div class="status-message" id="resetMessage" role="alert" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: REGISTRO DUPLICADO
+═════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="duplicateVoterModal" role="alertdialog" aria-modal="true" aria-labelledby="dupVoterTitle">
+  <div class="modal-card dup-voter-card">
+    <div class="dup-voter-header">
+      <div class="dup-voter-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div>
+        <h3 id="dupVoterTitle">Ciudadano ya registrado</h3>
+        <p>Este ciudadano ya pertenece a otro miembro de la estructura.</p>
+      </div>
+    </div>
+    <div id="dupVoterBody" class="dup-voter-body"></div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button type="button" class="primary-btn" id="closeDupVoterBtn" style="width:100%">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contenedor de notificaciones -->
+<div id="notifContainer" aria-live="polite" aria-label="Notificaciones"></div>
+
+<!-- ═══════════════════════════════
+     FOOTER MOREILA GUERRERO
+══════════════════════════════════ -->
+<footer class="site-footer mg-footer" role="contentinfo">
+  <div class="footer-topband"></div>
+  <div class="mg-footer-body">
+    <div class="mg-footer-inner">
+
+      <!-- Marca principal -->
+      <div class="mg-footer-brand">
+        <div class="mg-footer-monogram">
+          <span class="mg-mono-m">M</span><span class="mg-mono-g">G</span>
+        </div>
+        <div class="mg-footer-brand-text">
+          <span class="mg-footer-name">Moreila <em>Guerrero</em></span>
+          <span class="mg-footer-role">Maestra de Ceremonias · Política · Mujer</span>
+        </div>
+      </div>
+
+      <!-- Íconos de categoría -->
+      <div class="mg-footer-symbols">
+        <div class="mg-symbol mg-symbol-teal" title="Maestra de Ceremonias">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <div class="mg-symbol mg-symbol-orange" title="Política">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+        </div>
+        <div class="mg-symbol mg-symbol-peach" title="Mujer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+      </div>
+
+      <!-- Botón Conóceme + Copyright -->
+      <div class="mg-footer-actions">
+        <button class="mg-conoceme-btn" id="conocemeBtn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          Conóceme
+        </button>
+        <span class="mg-footer-copy">© 2026 Administración Peravia · República Dominicana</span>
+      </div>
+
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: CONÓCEME — MOREILA GUERRERO
+═════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="conocemeModal" role="dialog" aria-modal="true" aria-labelledby="conocemeModalTitle">
+  <div class="modal-card conoceme-modal-card">
+
+    <div class="conoceme-hero">
+      <button type="button" class="modal-close-btn conoceme-close" id="closeConocemeBtn" aria-label="Cerrar">x</button>
+      <div class="conoceme-photo-placeholder">
+        <div class="conoceme-photo-initials">MG</div>
+        <div class="conoceme-photo-ring"></div>
+      </div>
+      <div class="conoceme-hero-text">
+        <div class="conoceme-brand-logo">
+          <span class="conoceme-logo-moreila">Moreila</span>
+          <span class="conoceme-logo-apellido">Guerrero Suazo</span>
+        </div>
+        <p class="conoceme-titulo">Lider Social - Comunicadora Estrategica - Empresaria</p>
+        <p class="conoceme-subtitulo">Transformando comunidades a traves del liderazgo consciente</p>
+      </div>
+    </div>
+
+    <div class="conoceme-pilares">
+      <div class="conoceme-pilar pilar-teal">
+        <div class="pilar-ico pilar-ico-teal">&#9829;</div>
+        <strong>Mision</strong>
+        <span>Empoderar comunidades a traves del liderazgo consciente</span>
+      </div>
+      <div class="conoceme-pilar pilar-orange">
+        <div class="pilar-ico pilar-ico-orange">&#9737;</div>
+        <strong>Vision</strong>
+        <span>Sociedades mas justas e inclusivas</span>
+      </div>
+      <div class="conoceme-pilar pilar-peach">
+        <div class="pilar-ico pilar-ico-peach">&#9889;</div>
+        <strong>Impacto</strong>
+        <span>Transformacion social sostenible</span>
+      </div>
+      <div class="conoceme-pilar pilar-beige">
+        <div class="pilar-ico pilar-ico-beige">&#10022;</div>
+        <strong>Innovacion</strong>
+        <span>Soluciones creativas y efectivas</span>
+      </div>
+    </div>
+
+    <div class="conoceme-info">
+
+      <div class="conoceme-seccion">
+        <div class="conoceme-seccion-header">
+          <div class="conoceme-seccion-dot dot-teal"></div>
+          <h4>Mi Proposito</h4>
+        </div>
+        <p>Como lider social y comunicadora estrategica, mi mision es crear puentes entre las comunidades y las oportunidades de desarrollo. Creo firmemente en el poder transformador del liderazgo consciente y la comunicacion efectiva para generar cambios positivos y sostenibles.</p>
+        <p style="margin-top:8px">Mi filosofia de liderazgo se centra en empoderar a otros, especialmente a las mujeres jovenes. A traves de mi trabajo en organizaciones como <strong>CENSEL</strong> y mi participacion activa en el <strong>Partido Revolucionario Moderno</strong>, he podido impactar positivamente en cientos de vidas.</p>
+      </div>
+
+      <div class="conoceme-seccion">
+        <div class="conoceme-seccion-header">
+          <div class="conoceme-seccion-dot dot-orange"></div>
+          <h4>Formacion Academica</h4>
+        </div>
+        <p class="conoceme-seccion-sub">Un compromiso continuo con el aprendizaje y la excelencia academica</p>
+        <div class="conoceme-edu-list">
+
+          <div class="conoceme-edu-item">
+            <div class="conoceme-edu-icon edu-en-curso">&#127891;</div>
+            <div class="conoceme-edu-body">
+              <strong>Maestria en Direccion de Proyectos</strong>
+              <span class="edu-inst">Pontificia Universidad Catolica Madre y Maestra</span>
+              <div class="edu-meta">
+                <span class="edu-badge badge-curso">En curso</span>
+                <span class="edu-fecha">2024 - En proceso</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conoceme-edu-item">
+            <div class="conoceme-edu-icon edu-completo">&#127891;</div>
+            <div class="conoceme-edu-body">
+              <strong>Licenciatura en Administracion de Empresas</strong>
+              <span class="edu-inst">Universidad Tecnologica de Santiago (UTESA)</span>
+              <div class="edu-meta">
+                <span class="edu-badge badge-completo">Completado</span>
+                <span class="edu-fecha">Marzo 2020</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conoceme-edu-item">
+            <div class="conoceme-edu-icon edu-completo">&#128203;</div>
+            <div class="conoceme-edu-body">
+              <strong>Diplomado Gerencia Publica</strong>
+              <span class="edu-inst">Universidad de Chile</span>
+              <div class="edu-meta">
+                <span class="edu-badge badge-completo">Completado</span>
+                <span class="edu-fecha">Diciembre 2022</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conoceme-edu-item">
+            <div class="conoceme-edu-icon edu-completo">&#128203;</div>
+            <div class="conoceme-edu-body">
+              <strong>Diplomado Administracion de Empresas Cooperativas</strong>
+              <span class="edu-inst">Universidad Santander de Mexico</span>
+              <div class="edu-meta">
+                <span class="edu-badge badge-completo">Completado</span>
+                <span class="edu-fecha">Julio 2022</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conoceme-edu-item">
+            <div class="conoceme-edu-icon edu-completo">&#128203;</div>
+            <div class="conoceme-edu-body">
+              <strong>Diplomado en Economia Solidaria</strong>
+              <span class="edu-inst">Instituto Especializado</span>
+              <div class="edu-meta">
+                <span class="edu-badge badge-completo">Completado</span>
+                <span class="edu-fecha">2022</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="conoceme-seccion">
+        <div class="conoceme-seccion-header">
+          <div class="conoceme-seccion-dot dot-peach"></div>
+          <h4>Certificaciones Profesionales</h4>
+        </div>
+        <div class="conoceme-cert-list">
+          <div class="conoceme-cert-item">
+            <div class="cert-icon">&#127885;</div>
+            <div>
+              <strong>Locutora Profesional</strong>
+              <span>Escuela Nacional de Locucion Prof. Otto Rivera - Noviembre 2017</span>
+            </div>
+          </div>
+          <div class="conoceme-cert-item">
+            <div class="cert-icon">&#127885;</div>
+            <div>
+              <strong>Etica en la Investigacion para Estudiantes</strong>
+              <span>Citi Program - PUCMM - 2025</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="conoceme-footer-sig">
+      <div class="sig-brand">
+        <span class="sig-mg">MG</span>
+        <span>Moreila Guerrero Suazo</span>
+      </div>
+      <span>Brand Book por <strong>Tetrix grupo creativo</strong></span>
+    </div>
+
+  </div>
+</div>
+
+<script src="Script.js" defer></script>
+</body>
+</html>
