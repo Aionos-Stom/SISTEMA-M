@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentación — Sistema M Peravia</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; }
+  .cover { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #1a4a4a 0%, #2A8A8A 60%, #E8572A 100%); color: #fff; text-align: center; padding: 40px; page-break-after: always; }
+  .cover .logo { font-size: 64px; margin-bottom: 20px; }
+  .cover h1 { font-size: 36px; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px; }
+  .cover h2 { font-size: 18px; font-weight: 400; opacity: 0.85; margin-bottom: 40px; }
+  .cover .meta { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 20px 40px; font-size: 14px; line-height: 2; }
+  .cover .meta strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+  .toc { padding: 60px 80px; page-break-after: always; }
+  .toc h2 { font-size: 22px; color: #2A8A8A; border-bottom: 3px solid #2A8A8A; padding-bottom: 10px; margin-bottom: 30px; }
+  .toc ol { list-style: none; counter-reset: toc; }
+  .toc ol li { counter-increment: toc; padding: 8px 0; border-bottom: 1px dotted #ccc; display: flex; justify-content: space-between; font-size: 14px; }
+  .toc ol li::before { content: counter(toc) ". "; color: #2A8A8A; font-weight: 700; margin-right: 8px; }
+  .toc ol li span { color: #888; }
+  section { padding: 50px 80px; page-break-inside: avoid; }
+  section + section { border-top: 2px solid #f0f0f0; }
+  h2.section-title { font-size: 22px; color: #2A8A8A; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 3px solid #2A8A8A; display: flex; align-items: center; gap: 10px; }
+  h3 { font-size: 15px; color: #1a4a4a; margin: 20px 0 10px; font-weight: 700; }
+  p { line-height: 1.7; margin-bottom: 10px; color: #333; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-admin { background: #fde8e0; color: #c0392b; }
+  .badge-coord { background: #e0f0ff; color: #1a6aaa; }
+  .badge-super { background: #e8f8e8; color: #1a7a1a; }
+  .badge-reg   { background: #fff8e0; color: #a07000; }
+  .badge-obs   { background: #f0f0f0; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+  th { background: #2A8A8A; color: #fff; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:nth-child(even) td { background: #f9f9f9; }
+  .flow { display: flex; flex-wrap: wrap; gap: 0; margin: 20px 0; }
+  .flow-step { flex: 1; min-width: 120px; background: #f5fafa; border: 1px solid #b0d8d8; padding: 14px 10px; text-align: center; position: relative; font-size: 12px; }
+  .flow-step:not(:last-child)::after { content: '→'; position: absolute; right: -12px; top: 50%; transform: translateY(-50%); color: #2A8A8A; font-size: 18px; font-weight: 700; z-index: 1; }
+  .flow-step .num { display: block; font-size: 20px; font-weight: 800; color: #2A8A8A; }
+  .flow-step .label { display: block; margin-top: 4px; color: #333; }
+  .highlight { background: #f0fafa; border-left: 4px solid #2A8A8A; padding: 14px 18px; margin: 14px 0; border-radius: 0 8px 8px 0; }
+  .highlight.warn { background: #fff8e0; border-color: #E8572A; }
+  .highlight.danger { background: #fde8e0; border-color: #c0392b; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 11px; color: #c0392b; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0; }
+  .card { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; }
+  .card h4 { color: #2A8A8A; font-size: 13px; margin-bottom: 8px; }
+  .card ul { padding-left: 16px; }
+  .card ul li { margin-bottom: 4px; font-size: 12px; color: #444; }
+  .role-row { display: flex; align-items: flex-start; gap: 16px; padding: 14px 0; border-bottom: 1px solid #eee; }
+  .role-icon { font-size: 28px; min-width: 40px; text-align: center; }
+  .role-info h4 { font-size: 14px; margin-bottom: 4px; }
+  .role-info p { font-size: 12px; color: #555; margin: 0; }
+  .tech-stack { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+  .tech-item { background: #1a4a4a; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .footer-doc { background: #1a4a4a; color: #fff; text-align: center; padding: 30px; font-size: 12px; margin-top: 40px; }
+  .footer-doc p { opacity: 0.8; margin: 4px 0; }
+  @media print {
+    .cover { min-height: 100vh; }
+    section { page-break-inside: avoid; }
+    @page { margin: 15mm; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div class="cover">
+  <div class="logo">🗺️</div>
+  <h1>SISTEMA M — PERAVIA</h1>
+  <h2>Sistema de Gestión Territorial y Registro Ciudadano</h2>
+  <div class="meta">
+    <strong>Provincia</strong>Peravia, República Dominicana
+    <strong>Versión</strong>1.0 — Abril 2026
+    <strong>Tecnología</strong>HTML · JavaScript · Supabase (PostgreSQL)
+    <strong>Diseño</strong>Moreila Guerrero — Warm Executive
+  </div>
+</div>
+
+<!-- TABLA DE CONTENIDOS -->
+<div class="toc">
+  <h2>📋 Tabla de Contenidos</h2>
+  <ol>
+    <li>Descripción General del Sistema <span>pág. 3</span></li>
+    <li>Arquitectura y Tecnologías <span>pág. 4</span></li>
+    <li>Estructura de Archivos <span>pág. 5</span></li>
+    <li>Roles y Permisos <span>pág. 6</span></li>
+    <li>Módulo de Autenticación <span>pág. 7</span></li>
+    <li>Módulo de Registros Ciudadanos <span>pág. 8</span></li>
+    <li>Módulo de Gestión de Usuarios <span>pág. 9</span></li>
+    <li>Módulo de Auditoría <span>pág. 10</span></li>
+    <li>Base de Datos — Tablas y Estructura <span>pág. 11</span></li>
+    <li>Seguridad — RLS y Políticas <span>pág. 12</span></li>
+    <li>Interfaz de Usuario <span>pág. 13</span></li>
+    <li>Exportación de Datos <span>pág. 14</span></li>
+    <li>Configuración e Instalación <span>pág. 15</span></li>
+    <li>Flujos de Trabajo Principales <span>pág. 16</span></li>
+  </ol>
+</div>
+
+<!-- SECCIÓN 1: DESCRIPCIÓN GENERAL -->
+<section>
+  <h2 class="section-title">1. Descripción General del Sistema</h2>
+  <p>El <strong>Sistema M — Peravia</strong> es una plataforma web de gestión territorial diseñada para la Administración de la Provincia de Peravia, República Dominicana. Permite registrar, organizar y consultar información de ciudadanos y simpatizantes distribuidos por municipios, zonas, sectores y mesas electorales.</p>
+  <p>El sistema opera completamente en el navegador (sin instalación) y se conecta a una base de datos en la nube mediante Supabase. Cuenta con un modo demo que funciona sin conexión a internet para pruebas y presentaciones.</p>
+
+  <h3>Objetivos Principales</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>📊 Gestión Territorial</h4>
+      <ul>
+        <li>Registro de ciudadanos por zona geográfica</li>
+        <li>Organización por municipio, sector, mesa y recinto</li>
+        <li>Estadísticas en tiempo real por área</li>
+        <li>Filtros avanzados de búsqueda</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>👥 Control de Acceso</h4>
+      <ul>
+        <li>5 niveles de roles jerárquicos</li>
+        <li>Aprobación de usuarios por administrador</li>
+        <li>Visibilidad de datos según rol</li>
+        <li>Auditoría completa de acciones</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>📤 Exportación</h4>
+      <ul>
+        <li>Exportar registros a Excel (.xlsx)</li>
+        <li>Generación de reportes PDF</li>
+        <li>Filtros aplicados en la exportación</li>
+        <li>Datos organizados por columnas</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🔒 Seguridad</h4>
+      <ul>
+        <li>Autenticación con Supabase Auth</li>
+        <li>Políticas RLS en base de datos</li>
+        <li>Registro de auditoría inmutable</li>
+        <li>Recuperación de contraseña por email</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="highlight">
+    <strong>Municipios cubiertos:</strong> Baní · Nizao · Los Cacaos · Sabana Buey · Matanzas · Villa Fundación · Paya · Santana · Pueblo Viejo
+  </div>
+</section>
+
+<!-- SECCIÓN 2: ARQUITECTURA -->
+<section>
+  <h2 class="section-title">2. Arquitectura y Tecnologías</h2>
+  <p>El sistema es una <strong>Single Page Application (SPA)</strong> — toda la lógica vive en un solo archivo HTML + JS + CSS, sin frameworks ni proceso de compilación. La base de datos y autenticación están en la nube con Supabase.</p>
+
+  <h3>Stack Tecnológico</h3>
+  <div class="tech-stack">
+    <div class="tech-item">HTML5</div>
+    <div class="tech-item">CSS3 (Variables + Dark Mode)</div>
+    <div class="tech-item">JavaScript ES2022 (Vanilla)</div>
+    <div class="tech-item">Supabase (PostgreSQL)</div>
+    <div class="tech-item">Supabase Auth (JWT)</div>
+    <div class="tech-item">Row Level Security (RLS)</div>
+    <div class="tech-item">SheetJS (Excel Export)</div>
+    <div class="tech-item">jsPDF (PDF Export)</div>
+    <div class="tech-item">Chart.js (Gráficas)</div>
+    <div class="tech-item">Google Fonts (Fraunces + DM Sans)</div>
+  </div>
+
+  <h3>Diagrama de Arquitectura</h3>
+  <div class="flow">
+    <div class="flow-step"><span class="num">🌐</span><span class="label">Navegador<br>(HTML/JS/CSS)</span></div>
+    <div class="flow-step"><span class="num">🔑</span><span class="label">Supabase Auth<br>(JWT Tokens)</span></div>
+    <div class="flow-step"><span class="num">🛡️</span><span class="label">RLS Policies<br>(PostgreSQL)</span></div>
+    <div class="flow-step"><span class="num">🗄️</span><span class="label">Base de Datos<br>(3 tablas)</span></div>
+    <div class="flow-step"><span class="num">📤</span><span class="label">Exportación<br>(Excel / PDF)</span></div>
+  </div>
+
+  <h3>Modo Demo vs Modo Real</h3>
+  <table>
+    <tr><th>Característica</th><th>Modo Demo</th><th>Modo Real (Supabase)</th></tr>
+    <tr><td>Autenticación</td><td>Acepta cualquier credencial</td><td>Email + contraseña verificados</td></tr>
+    <tr><td>Datos</td><td>Solo en memoria (se pierden al recargar)</td><td>Persistidos en PostgreSQL</td></tr>
+    <tr><td>Roles</td><td>Siempre Administrador</td><td>Según perfil en base de datos</td></tr>
+    <tr><td>Auditoría</td><td>No registra</td><td>Registro completo</td></tr>
+    <tr><td>Activación</td><td>Automático si no hay credenciales</td><td>Con URL y clave de Supabase</td></tr>
+  </table>
+</section>
+
+<!-- SECCIÓN 3: ESTRUCTURA DE ARCHIVOS -->
+<section>
+  <h2 class="section-title">3. Estructura de Archivos</h2>
+  <table>
+    <tr><th>Archivo</th><th>Tamaño aprox.</th><th>Descripción</th></tr>
+    <tr><td><code>Index.html</code></td><td>~600 líneas</td><td>Estructura HTML completa: formularios de auth, dashboard, modales, tablas, paneles de navegación</td></tr>
+    <tr><td><code>Script.js</code></td><td>~1,200 líneas</td><td>Toda la lógica de la aplicación: autenticación, CRUD, filtros, exportación, auditoría, UI</td></tr>
+    <tr><td><code>Styles.css</code></td><td>~800 líneas</td><td>Estilos completos con variables CSS, tema claro/oscuro, responsive, animaciones</td></tr>
+    <tr><td><code>supabase_setup.sql</code></td><td>~400 líneas</td><td>Script SQL inicial: crea tablas, índices, funciones RLS, políticas de seguridad</td></tr>
+    <tr><td><code>supabase_patch.sql</code></td><td>~40 líneas</td><td>Parche de corrección: consolida políticas RLS de registros para todos los roles</td></tr>
+    <tr><td><code>README.md</code></td><td>~120 líneas</td><td>Guía rápida de instalación y uso</td></tr>
+  </table>
+
+  <h3>Organización interna de Script.js</h3>
+  <table>
+    <tr><th>Sección</th><th>Funciones principales</th></tr>
+    <tr><td>Configuración</td><td>Credenciales Supabase, constantes, estado global <code>APP</code></td></tr>
+    <tr><td>Inicialización</td><td><code>init()</code>, <code>waitForSupabase()</code>, <code>populateSelects()</code></td></tr>
+    <tr><td>Autenticación</td><td><code>handleLogin()</code>, <code>handleRegister()</code>, <code>handleLogout()</code></td></tr>
+    <tr><td>Recuperación de contraseña</td><td><code>handleForgotPassword()</code>, <code>handleResetPassword()</code></td></tr>
+    <tr><td>Carga de datos</td><td><code>loadVoters()</code>, <code>loadUsers()</code>, <code>loadAuditLogs()</code></td></tr>
+    <tr><td>CRUD Registros</td><td><code>handleVoterSubmit()</code>, <code>editVoter()</code>, <code>deleteVoter()</code></td></tr>
+    <tr><td>CRUD Usuarios</td><td><code>handleUserEdit()</code>, <code>toggleUserStatus()</code>, <code>openEditUser()</code></td></tr>
+    <tr><td>Filtros y búsqueda</td><td><code>applyFilters()</code>, <code>populateDynamicFilters()</code></td></tr>
+    <tr><td>Exportación</td><td><code>exportToExcel()</code>, <code>exportToPDF()</code></td></tr>
+    <tr><td>Auditoría</td><td><code>logAudit()</code>, <code>renderAuditTable()</code>, <code>renderAuditStats()</code></td></tr>
+    <tr><td>UI / Renderizado</td><td><code>renderVotersTable()</code>, <code>renderUsersTable()</code>, <code>renderOverview()</code></td></tr>
+    <tr><td>Permisos</td><td><code>applyRolePermissions()</code>, <code>isAdmin()</code>, <code>isCoordOrAbove()</code></td></tr>
+  </table>
+</section>
+
+<!-- SECCIÓN 4: ROLES Y PERMISOS -->
+<section>
+  <h2 class="section-title">4. Roles y Permisos</h2>
+  <p>El sistema implementa una jerarquía de 5 roles. Cada rol hereda las capacidades del nivel inferior y agrega las propias.</p>
+
+  <div class="role-row">
+    <div class="role-icon">👑</div>
+    <div class="role-info">
+      <h4><span class="badge badge-admin">Administrador</span> — Nivel 5</h4>
+      <p>Acceso total al sistema. Puede ver todos los registros de todos los municipios, gestionar usuarios (aprobar, rechazar, editar, eliminar), ver el log de auditoría completo y exportar cualquier dato.</p>
+    </div>
+  </div>
+  <div class="role-row">
+    <div class="role-icon">🏛️</div>
+    <div class="role-info">
+      <h4><span class="badge badge-coord">Coordinador Municipal</span> — Nivel 4</h4>
+      <p>Ve todos los registros de su municipio (provincia) asignado. Puede editar y eliminar registros de su área. No accede a auditoría ni gestión de usuarios.</p>
+    </div>
+  </div>
+  <div class="role-row">
+    <div class="role-icon">🔍</div>
+    <div class="role-info">
+      <h4><span class="badge badge-super">Supervisor de Zona</span> — Nivel 3</h4>
+      <p>Ve únicamente los registros que él mismo ha creado. Puede editar registros propios. No puede eliminar ni gestionar usuarios.</p>
+    </div>
+  </div>
+  <div class="role-row">
+    <div class="role-icon">✏️</div>
+    <div class="role-info">
+      <h4><span class="badge badge-reg">Registrador</span> — Nivel 2</h4>
+      <p>Puede crear nuevos registros ciudadanos y ver solo los que él registró. No puede editar ni eliminar registros existentes.</p>
+    </div>
+  </div>
+  <div class="role-row">
+    <div class="role-icon">👁️</div>
+    <div class="role-info">
+      <h4><span class="badge badge-obs">Observador</span> — Nivel 1</h4>
+      <p>Solo puede ver los registros que él mismo creó. No puede crear, editar ni eliminar. Acceso de solo lectura.</p>
+    </div>
+  </div>
+
+  <h3>Matriz de Permisos</h3>
+  <table>
+    <tr><th>Acción</th><th>Admin</th><th>Coordinador</th><th>Supervisor</th><th>Registrador</th><th>Observador</th></tr>
+    <tr><td>Ver todos los registros</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+    <tr><td>Ver registros de su municipio</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+    <tr><td>Ver sus propios registros</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    <tr><td>Crear registros</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+    <tr><td>Editar registros</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
+    <tr><td>Eliminar registros</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+    <tr><td>Gestionar usuarios</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+    <tr><td>Ver auditoría</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+    <tr><td>Exportar datos</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+  </table>
+</section>
+
+<!-- SECCIÓN 5: AUTENTICACIÓN -->
+<section>
+  <h2 class="section-title">5. Módulo de Autenticación</h2>
+
+  <h3>Flujo de Registro de Usuario</h3>
+  <div class="flow">
+    <div class="flow-step"><span class="num">1</span><span class="label">Llenar formulario</span></div>
+    <div class="flow-step"><span class="num">2</span><span class="label">Validar campos</span></div>
+    <div class="flow-step"><span class="num">3</span><span class="label">Crear cuenta Auth</span></div>
+    <div class="flow-step"><span class="num">4</span><span class="label">Crear perfil en BD</span></div>
+    <div class="flow-step"><span class="num">5</span><span class="label">Estado: pendiente</span></div>
+    <div class="flow-step"><span class="num">6</span><span class="label">Admin aprueba</span></div>
+  </div>
+
+  <h3>Campos del Formulario de Registro</h3>
+  <table>
+    <tr><th>Campo</th><th>Requerido</th><th>Validación</th></tr>
+    <tr><td>Nombre completo</td><td>✅</td><td>No vacío</td></tr>
+    <tr><td>Nombre de usuario</td><td>✅</td><td>Mínimo 3 caracteres, único en el sistema</td></tr>
+    <tr><td>Correo electrónico</td><td>✅</td><td>Formato válido con @, único en el sistema</td></tr>
+    <tr><td>Teléfono</td><td>✅</td><td>No vacío</td></tr>
+    <tr><td>Rol</td><td>✅</td><td>Debe seleccionar uno de los 5 roles</td></tr>
+    <tr><td>Municipio</td><td>✅</td><td>Uno de los 9 municipios de Peravia</td></tr>
+    <tr><td>Región</td><td>❌</td><td>Texto libre</td></tr>
+    <tr><td>Municipio (sección)</td><td>❌</td><td>Texto libre</td></tr>
+    <tr><td>Distrito</td><td>❌</td><td>Texto libre</td></tr>
+    <tr><td>Zona / Demarcación</td><td>✅</td><td>No vacío</td></tr>
+    <tr><td>Contraseña</td><td>✅</td><td>Mínimo 6 caracteres</td></tr>
+    <tr><td>Confirmar contraseña</td><td>✅</td><td>Debe coincidir con contraseña</td></tr>
+  </table>
+
+  <h3>Flujo de Login</h3>
+  <div class="flow">
+    <div class="flow-step"><span class="num">1</span><span class="label">Ingresar usuario o email</span></div>
+    <div class="flow-step"><span class="num">2</span><span class="label">Resolver email si es username</span></div>
+    <div class="flow-step"><span class="num">3</span><span class="label">signInWithPassword</span></div>
+    <div class="flow-step"><span class="num">4</span><span class="label">Verificar estado aprobado</span></div>
+    <div class="flow-step"><span class="num">5</span><span class="label">Cargar perfil y dashboard</span></div>
+  </div>
+
+  <div class="highlight warn">
+    <strong>⚠️ Importante:</strong> Los usuarios nuevos quedan en estado <code>pendiente</code> hasta que un Administrador los apruebe desde el panel de Gestión de Usuarios. Sin aprobación, el login es bloqueado con mensaje de error.
+  </div>
+
+  <h3>Recuperación de Contraseña</h3>
+  <p>El usuario ingresa su correo en el formulario "¿Olvidé mi contraseña?". Supabase envía un enlace de recuperación al email. Al hacer clic en el enlace, el sistema detecta el parámetro <code>type=recovery</code> en la URL y abre automáticamente el modal para establecer una nueva contraseña.</p>
+
+  <h3>Gestión de Sesión</h3>
+  <p>La sesión se persiste en <code>localStorage</code> con la clave <code>peravia-auth-token</code>. Al recargar la página, el sistema verifica si hay sesión activa y carga el dashboard automáticamente sin necesidad de volver a iniciar sesión. El token se renueva automáticamente antes de expirar.</p>
+</section>
+
+<!-- SECCIÓN 6: REGISTROS CIUDADANOS -->
+<section>
+  <h2 class="section-title">6. Módulo de Registros Ciudadanos</h2>
+  <p>Es el módulo central del sistema. Permite registrar ciudadanos y simpatizantes con su información geográfica y electoral completa.</p>
+
+  <h3>Campos de un Registro</h3>
+  <table>
+    <tr><th>Campo</th><th>Requerido</th><th>Descripción</th></tr>
+    <tr><td>Nombre completo</td><td>✅</td><td>Nombre del ciudadano</td></tr>
+    <tr><td>Cédula</td><td>✅</td><td>Documento de identidad — único, no permite duplicados</td></tr>
+    <tr><td>Teléfono</td><td>✅</td><td>Número de contacto</td></tr>
+    <tr><td>Municipio</td><td>✅</td><td>Uno de los 9 municipios de Peravia</td></tr>
+    <tr><td>Región</td><td>❌</td><td>Región dentro del municipio</td></tr>
+    <tr><td>Sección (municipio)</td><td>✅</td><td>Sección o barrio</td></tr>
+    <tr><td>Distrito</td><td>❌</td><td>Distrito municipal</td></tr>
+    <tr><td>Zona</td><td>✅</td><td>Zona electoral</td></tr>
+    <tr><td>Sector</td><td>✅</td><td>Sector específico</td></tr>
+    <tr><td>Mesa</td><td>✅</td><td>Número de mesa electoral</td></tr>
+    <tr><td>Recinto</td><td>✅</td><td>Recinto electoral</td></tr>
+    <tr><td>Observación</td><td>❌</td><td>Notas adicionales</td></tr>
+  </table>
+
+  <h3>Detección de Duplicados</h3>
+  <p>Antes de insertar un registro, el sistema verifica si la cédula ya existe en la base de datos. Si hay duplicado, muestra un modal de advertencia indicando quién registró previamente a esa persona, y cancela la inserción.</p>
+
+  <h3>Filtros Disponibles</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>🔍 Búsqueda de texto</h4>
+      <ul>
+        <li>Nombre del ciudadano</li>
+        <li>Número de cédula</li>
+        <li>Teléfono</li>
+        <li>Zona, sector, mesa, recinto, municipio</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>📍 Filtros geográficos</h4>
+      <ul>
+        <li>Por municipio (provincia)</li>
+        <li>Por sección (municipio)</li>
+        <li>Por sector</li>
+        <li>Por mesa electoral</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>👤 Filtros por registrador</h4>
+      <ul>
+        <li>Por rol del registrador</li>
+        <li>Por nombre del registrador</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>⚡ Comportamiento</h4>
+      <ul>
+        <li>Filtros en tiempo real (sin recargar)</li>
+        <li>Combinables entre sí</li>
+        <li>Badge con conteo de resultados</li>
+        <li>Botón para limpiar todos los filtros</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECCIÓN 7: GESTIÓN DE USUARIOS -->
+<section>
+  <h2 class="section-title">7. Módulo de Gestión de Usuarios</h2>
+  <p>Exclusivo para el rol Administrador. Permite ver, aprobar, editar y eliminar cuentas de usuario del sistema.</p>
+
+  <h3>Acciones disponibles</h3>
+  <table>
+    <tr><th>Acción</th><th>Descripción</th></tr>
+    <tr><td>Ver lista de usuarios</td><td>Tabla con todos los usuarios: nombre, username, email, rol, municipio, estado y fecha de registro</td></tr>
+    <tr><td>Aprobar usuario</td><td>Cambia el estado de <code>pendiente</code> a <code>aprobado</code>. El usuario puede iniciar sesión a partir de ese momento</td></tr>
+    <tr><td>Rechazar / Eliminar usuario</td><td>Elimina completamente el perfil de la tabla <code>usuarios</code> y la cuenta de Supabase Auth. El correo queda libre para registrarse de nuevo</td></tr>
+    <tr><td>Editar usuario</td><td>Modal para modificar nombre, username, email, teléfono, rol, municipio, región, zona y otros campos</td></tr>
+  </table>
+
+  <div class="highlight warn">
+    <strong>⚠️ Nota:</strong> Rechazar un usuario aprobado lo elimina permanentemente del sistema. Esta acción no se puede deshacer y requiere confirmación explícita.
+  </div>
+
+  <h3>Estados de Usuario</h3>
+  <table>
+    <tr><th>Estado</th><th>Descripción</th><th>Puede iniciar sesión</th></tr>
+    <tr><td><code>pendiente</code></td><td>Recién registrado, esperando aprobación del administrador</td><td>❌ No</td></tr>
+    <tr><td><code>aprobado</code></td><td>Cuenta activa y funcional</td><td>✅ Sí</td></tr>
+    <tr><td><code>rechazado</code></td><td>Cuenta denegada por el administrador</td><td>❌ No</td></tr>
+  </table>
+</section>
+
+<!-- SECCIÓN 8: AUDITORÍA -->
+<section>
+  <h2 class="section-title">8. Módulo de Auditoría</h2>
+  <p>Registro inmutable de todas las acciones realizadas en el sistema. Solo visible para el Administrador. No se puede modificar ni eliminar ningún registro de auditoría.</p>
+
+  <h3>Acciones registradas automáticamente</h3>
+  <table>
+    <tr><th>Código de acción</th><th>Descripción</th></tr>
+    <tr><td><code>SESSION_LOGIN</code></td><td>Inicio de sesión exitoso</td></tr>
+    <tr><td><code>SESSION_LOGIN_FAILED</code></td><td>Intento de login fallido (registra el usuario/email intentado)</td></tr>
+    <tr><td><code>SESSION_LOGOUT</code></td><td>Cierre de sesión</td></tr>
+    <tr><td><code>PASSWORD_RESET_REQUEST</code></td><td>Solicitud de recuperación de contraseña</td></tr>
+    <tr><td><code>PASSWORD_RESET_COMPLETE</code></td><td>Contraseña actualizada exitosamente</td></tr>
+    <tr><td><code>VOTER_CREATE</code></td><td>Nuevo registro ciudadano creado</td></tr>
+    <tr><td><code>VOTER_EDIT</code></td><td>Registro ciudadano editado</td></tr>
+    <tr><td><code>VOTER_DELETE</code></td><td>Registro ciudadano eliminado</td></tr>
+    <tr><td><code>VOTER_DUPLICATE</code></td><td>Intento de registrar una cédula ya existente</td></tr>
+    <tr><td><code>USER_EDIT</code></td><td>Perfil de usuario modificado</td></tr>
+    <tr><td><code>USER_APPROVE</code></td><td>Usuario aprobado por administrador</td></tr>
+    <tr><td><code>USER_REJECT</code></td><td>Usuario rechazado y eliminado</td></tr>
+  </table>
+
+  <h3>Datos registrados por cada acción</h3>
+  <p>Cada entrada de auditoría guarda: ID del actor, nombre del actor, rol del actor, código de acción, objetivo (ID o nombre del elemento afectado), detalles descriptivos y fecha/hora exacta.</p>
+
+  <h3>Filtros de Auditoría</h3>
+  <p>El administrador puede filtrar el log por: texto libre (nombre, objetivo, detalles), tipo de acción, actor específico, y rango de fechas (desde / hasta).</p>
+</section>
+
+<!-- SECCIÓN 9: BASE DE DATOS -->
+<section>
+  <h2 class="section-title">9. Base de Datos — Tablas y Estructura</h2>
+  <p>La base de datos corre en PostgreSQL a través de Supabase. Tiene 3 tablas principales.</p>
+
+  <h3>Tabla: <code>usuarios</code></h3>
+  <table>
+    <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGSERIAL PK</td><td>Identificador interno</td></tr>
+    <tr><td>auth_user_id</td><td>UUID UNIQUE</td><td>ID de Supabase Auth (vincula con la cuenta de login)</td></tr>
+    <tr><td>nombre_completo</td><td>TEXT</td><td>Nombre del usuario</td></tr>
+    <tr><td>username</td><td>TEXT UNIQUE</td><td>Nombre de usuario para login</td></tr>
+    <tr><td>email</td><td>TEXT UNIQUE</td><td>Correo electrónico</td></tr>
+    <tr><td>telefono</td><td>TEXT</td><td>Teléfono de contacto</td></tr>
+    <tr><td>rol</td><td>rol_enum</td><td>Administrador / Coordinador / Supervisor / Registrador / Observador</td></tr>
+    <tr><td>provincia</td><td>TEXT</td><td>Municipio asignado (Baní, Nizao, etc.)</td></tr>
+    <tr><td>region</td><td>TEXT</td><td>Región dentro del municipio</td></tr>
+    <tr><td>municipio</td><td>TEXT</td><td>Sección</td></tr>
+    <tr><td>distrito</td><td>TEXT</td><td>Distrito</td></tr>
+    <tr><td>zona</td><td>TEXT</td><td>Zona o demarcación</td></tr>
+    <tr><td>estado</td><td>estado_enum</td><td>aprobado / pendiente / rechazado</td></tr>
+    <tr><td>created_at</td><td>TIMESTAMPTZ</td><td>Fecha de registro</td></tr>
+    <tr><td>updated_at</td><td>TIMESTAMPTZ</td><td>Última modificación (auto-actualizado por trigger)</td></tr>
+  </table>
+
+  <h3>Tabla: <code>registros</code></h3>
+  <table>
+    <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGSERIAL PK</td><td>Identificador del registro</td></tr>
+    <tr><td>nombre</td><td>TEXT</td><td>Nombre del ciudadano</td></tr>
+    <tr><td>cedula</td><td>TEXT UNIQUE</td><td>Cédula de identidad (no permite duplicados)</td></tr>
+    <tr><td>telefono</td><td>TEXT</td><td>Teléfono</td></tr>
+    <tr><td>provincia</td><td>TEXT</td><td>Municipio</td></tr>
+    <tr><td>region / municipio / distrito / zona / sector / mesa / recinto</td><td>TEXT</td><td>Datos geográficos y electorales</td></tr>
+    <tr><td>observacion</td><td>TEXT</td><td>Notas adicionales</td></tr>
+    <tr><td>registrado_por_id</td><td>UUID</td><td>auth.uid() del usuario que creó el registro</td></tr>
+    <tr><td>registrado_por_nombre</td><td>TEXT</td><td>Nombre del registrador</td></tr>
+    <tr><td>registrado_por_rol</td><td>TEXT</td><td>Rol del registrador al momento del registro</td></tr>
+    <tr><td>created_at / updated_at</td><td>TIMESTAMPTZ</td><td>Fechas de creación y modificación</td></tr>
+  </table>
+
+  <h3>Tabla: <code>auditoria</code></h3>
+  <table>
+    <tr><th>Columna</th><th>Tipo</th><th>Descripción</th></tr>
+    <tr><td>id</td><td>BIGSERIAL PK</td><td>Identificador del log</td></tr>
+    <tr><td>actor_id</td><td>UUID</td><td>auth.uid() del usuario que realizó la acción</td></tr>
+    <tr><td>actor_nombre</td><td>TEXT</td><td>Nombre del actor</td></tr>
+    <tr><td>actor_rol</td><td>TEXT</td><td>Rol del actor</td></tr>
+    <tr><td>accion</td><td>TEXT</td><td>Código de la acción (ej: VOTER_CREATE)</td></tr>
+    <tr><td>objetivo</td><td>TEXT</td><td>ID o nombre del elemento afectado</td></tr>
+    <tr><td>detalles</td><td>TEXT</td><td>Descripción detallada</td></tr>
+    <tr><td>created_at</td><td>TIMESTAMPTZ</td><td>Fecha y hora exacta</td></tr>
+  </table>
+</section>
+
+<!-- SECCIÓN 10: SEGURIDAD RLS -->
+<section>
+  <h2 class="section-title">10. Seguridad — RLS y Políticas</h2>
+  <p>Row Level Security (RLS) es una característica de PostgreSQL que filtra automáticamente las filas que cada usuario puede ver o modificar, directamente en la base de datos — independientemente de lo que haga el código del cliente.</p>
+
+  <h3>Funciones de seguridad (SECURITY DEFINER)</h3>
+  <table>
+    <tr><th>Función</th><th>Retorna</th><th>Uso</th></tr>
+    <tr><td><code>get_mi_rol()</code></td><td>TEXT</td><td>Rol del usuario autenticado actual</td></tr>
+    <tr><td><code>get_mi_estado()</code></td><td>TEXT</td><td>Estado (aprobado/pendiente/rechazado) del usuario actual</td></tr>
+    <tr><td><code>get_mi_provincia()</code></td><td>TEXT</td><td>Municipio asignado al usuario actual</td></tr>
+    <tr><td><code>get_mi_nivel()</code></td><td>INT</td><td>Nivel numérico del rol (1-5)</td></tr>
+    <tr><td><code>get_email_from_username()</code></td><td>TEXT</td><td>Busca email por username (para login, accesible sin sesión)</td></tr>
+    <tr><td><code>check_username_exists()</code></td><td>BOOLEAN</td><td>Verifica si un username ya existe (para registro)</td></tr>
+  </table>
+
+  <h3>Política consolidada para registros (SELECT)</h3>
+  <div class="highlight">
+    La política <code>registros_select</code> (aplicada por <code>supabase_patch.sql</code>) permite ver un registro si se cumple alguna de estas condiciones:<br><br>
+    1. El usuario es Administrador<br>
+    2. El usuario es Coordinador o superior Y el registro es de su municipio<br>
+    3. El usuario está aprobado Y fue quien creó el registro (<code>registrado_por_id = auth.uid()</code>)
+  </div>
+
+  <h3>Resumen de políticas por tabla</h3>
+  <table>
+    <tr><th>Tabla</th><th>Operación</th><th>Condición</th></tr>
+    <tr><td>registros</td><td>SELECT</td><td>Admin ó (Coord+ en su provincia) ó (propio registro y aprobado)</td></tr>
+    <tr><td>registros</td><td>INSERT</td><td>Nivel ≥ 2 (Registrador+) y estado aprobado</td></tr>
+    <tr><td>registros</td><td>UPDATE</td><td>Nivel ≥ 3 (Supervisor+) y estado aprobado</td></tr>
+    <tr><td>registros</td><td>DELETE</td><td>Nivel ≥ 4 (Coordinador+) y estado aprobado</td></tr>
+    <tr><td>usuarios</td><td>SELECT</td><td>Usuario aprobado ó propio perfil ó Admin</td></tr>
+    <tr><td>usuarios</td><td>INSERT</td><td>Solo su propio perfil (auth_user_id = auth.uid())</td></tr>
+    <tr><td>usuarios</td><td>UPDATE</td><td>Admin (cualquiera) ó propio perfil</td></tr>
+    <tr><td>usuarios</td><td>DELETE</td><td>Solo Admin</td></tr>
+    <tr><td>auditoria</td><td>SELECT</td><td>Nivel ≥ 4 (Coordinador+) y aprobado</td></tr>
+    <tr><td>auditoria</td><td>INSERT</td><td>Usuario aprobado ó logins fallidos (anon)</td></tr>
+    <tr><td>auditoria</td><td>UPDATE/DELETE</td><td>Bloqueado — nadie puede modificar el historial</td></tr>
+  </table>
+</section>
+
+<!-- SECCIÓN 11: INTERFAZ DE USUARIO -->
+<section>
+  <h2 class="section-title">11. Interfaz de Usuario</h2>
+
+  <h3>Paneles del Dashboard</h3>
+  <table>
+    <tr><th>Panel</th><th>Acceso</th><th>Contenido</th></tr>
+    <tr><td>Resumen (Overview)</td><td>Todos</td><td>Estadísticas: total registros, usuarios activos, registros hoy, municipios activos. Gráfica de barras por municipio.</td></tr>
+    <tr><td>Registros</td><td>Todos</td><td>Formulario de registro + tabla con filtros + acciones de editar/eliminar</td></tr>
+    <tr><td>Usuarios</td><td>Solo Admin</td><td>Lista de usuarios con opciones de aprobar, rechazar y editar</td></tr>
+    <tr><td>Auditoría</td><td>Solo Admin</td><td>Log completo de acciones con filtros y estadísticas</td></tr>
+  </table>
+
+  <h3>Temas visuales</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>☀️ Tema Claro (Light)</h4>
+      <ul>
+        <li>Fondo: beige cálido (#F5F0E8)</li>
+        <li>Primario: turquesa (#2A8A8A)</li>
+        <li>Acento: naranja (#E8572A)</li>
+        <li>Texto: gris oscuro (#1a1a1a)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🌙 Tema Oscuro (Dark)</h4>
+      <ul>
+        <li>Fondo: gris muy oscuro (#0f1117)</li>
+        <li>Superficies: gris oscuro (#1a1d27)</li>
+        <li>Primario: turquesa claro (#3AAFAF)</li>
+        <li>Texto: blanco suave (#e8e8e8)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Tipografía</h3>
+  <p><strong>Fraunces</strong> (serif) para títulos y encabezados — da un carácter ejecutivo y formal. <strong>DM Sans</strong> (sans-serif) para cuerpo de texto — limpia y legible en pantalla.</p>
+
+  <h3>Responsive Design</h3>
+  <p>La interfaz se adapta a móvil, tablet y escritorio. En pantallas pequeñas, la barra lateral se colapsa y las tablas se vuelven horizontalmente desplazables. Los formularios se reorganizan en una sola columna.</p>
+
+  <h3>Notificaciones</h3>
+  <p>El sistema muestra notificaciones tipo "toast" en la esquina superior derecha para confirmar acciones (registro creado, usuario aprobado, etc.) y alertar sobre errores. Desaparecen automáticamente después de 4 segundos.</p>
+</section>
+
+<!-- SECCIÓN 12: EXPORTACIÓN -->
+<section>
+  <h2 class="section-title">12. Exportación de Datos</h2>
+
+  <h3>Exportar a Excel (.xlsx)</h3>
+  <p>Genera un archivo Excel con los registros actualmente filtrados en la tabla. Usa la librería <strong>SheetJS</strong>. Las columnas exportadas son: Nombre, Cédula, Teléfono, Municipio, Región, Sección, Distrito, Zona, Sector, Mesa, Recinto, Observación, Registrado por, Rol del registrador, Fecha de registro.</p>
+  <p>El nombre del archivo incluye la fecha de exportación: <code>registros_peravia_YYYY-MM-DD.xlsx</code></p>
+
+  <h3>Exportar a PDF</h3>
+  <p>Genera un PDF con los registros filtrados usando <strong>jsPDF</strong> con el plugin <strong>autoTable</strong>. Incluye encabezado con el nombre del sistema, fecha de generación y total de registros. Las columnas se ajustan automáticamente al ancho de la página.</p>
+
+  <div class="highlight">
+    <strong>💡 Tip:</strong> Los filtros aplicados en la tabla se respetan en la exportación. Si filtras por municipio "Baní" antes de exportar, el archivo solo contendrá registros de Baní.
+  </div>
+</section>
+
+<!-- SECCIÓN 13: CONFIGURACIÓN E INSTALACIÓN -->
+<section>
+  <h2 class="section-title">13. Configuración e Instalación</h2>
+
+  <h3>Paso 1 — Crear proyecto en Supabase</h3>
+  <p>Ir a <strong>supabase.com</strong>, crear una cuenta y un nuevo proyecto. Anotar la <strong>Project URL</strong> y la clave <strong>anon/public</strong> desde Settings → API.</p>
+
+  <h3>Paso 2 — Configurar credenciales en Script.js</h3>
+  <div class="highlight">
+    Abrir <code>Script.js</code> y reemplazar las líneas al inicio del archivo:<br><br>
+    <code>const SUPABASE_URL  = 'https://tu-proyecto.supabase.co';</code><br>
+    <code>const SUPABASE_ANON = 'tu_clave_anon_aqui';</code>
+  </div>
+
+  <h3>Paso 3 — Crear las tablas en Supabase</h3>
+  <p>En Supabase → SQL Editor → New Query, pegar y ejecutar el contenido completo de <code>supabase_setup.sql</code>. Esto crea las 3 tablas, índices, funciones de seguridad y políticas RLS.</p>
+
+  <h3>Paso 4 — Aplicar el parche de RLS</h3>
+  <p>Ejecutar también el contenido de <code>supabase_patch.sql</code>. Esto consolida las políticas SELECT de la tabla <code>registros</code> para que todos los roles puedan ver sus propios registros correctamente.</p>
+
+  <h3>Paso 5 — Abrir la aplicación</h3>
+  <p>Abrir <code>Index.html</code> directamente en el navegador (doble clic) o servirlo con cualquier servidor web estático. No requiere Node.js, Python ni ningún servidor de aplicaciones.</p>
+
+  <h3>Paso 6 — Crear el primer usuario Administrador</h3>
+  <p>Registrarse desde el formulario de registro seleccionando el rol <strong>Administrador</strong>. El primer usuario puede aprobarse a sí mismo directamente en Supabase → Table Editor → tabla <code>usuarios</code> → cambiar <code>estado</code> a <code>aprobado</code>. A partir de ahí, el Administrador puede aprobar a los demás usuarios desde el panel.</p>
+
+  <h3>Requisitos del sistema</h3>
+  <table>
+    <tr><th>Componente</th><th>Requisito</th></tr>
+    <tr><td>Navegador</td><td>Chrome 90+, Firefox 88+, Edge 90+, Safari 14+</td></tr>
+    <tr><td>Conexión a internet</td><td>Requerida para modo real (Supabase). No requerida para modo demo.</td></tr>
+    <tr><td>Servidor web</td><td>No requerido — funciona abriendo el HTML directamente</td></tr>
+    <tr><td>Base de datos</td><td>Supabase (plan gratuito es suficiente)</td></tr>
+    <tr><td>Instalación de software</td><td>Ninguna</td></tr>
+  </table>
+</section>
+
+<!-- SECCIÓN 14: FLUJOS DE TRABAJO -->
+<section>
+  <h2 class="section-title">14. Flujos de Trabajo Principales</h2>
+
+  <h3>Flujo: Registrar un ciudadano</h3>
+  <div class="flow">
+    <div class="flow-step"><span class="num">1</span><span class="label">Login con usuario aprobado</span></div>
+    <div class="flow-step"><span class="num">2</span><span class="label">Panel "Registros"</span></div>
+    <div class="flow-step"><span class="num">3</span><span class="label">Llenar formulario</span></div>
+    <div class="flow-step"><span class="num">4</span><span class="label">Verificar duplicado de cédula</span></div>
+    <div class="flow-step"><span class="num">5</span><span class="label">Guardar en BD</span></div>
+    <div class="flow-step"><span class="num">6</span><span class="label">Aparece en tabla</span></div>
+  </div>
+
+  <h3>Flujo: Aprobar un usuario nuevo</h3>
+  <div class="flow">
+    <div class="flow-step"><span class="num">1</span><span class="label">Usuario se registra</span></div>
+    <div class="flow-step"><span class="num">2</span><span class="label">Estado: pendiente</span></div>
+    <div class="flow-step"><span class="num">3</span><span class="label">Admin ve lista de usuarios</span></div>
+    <div class="flow-step"><span class="num">4</span><span class="label">Clic en "Aprobar"</span></div>
+    <div class="flow-step"><span class="num">5</span><span class="label">Estado: aprobado</span></div>
+    <div class="flow-step"><span class="num">6</span><span class="label">Usuario puede hacer login</span></div>
+  </div>
+
+  <h3>Flujo: Exportar registros filtrados</h3>
+  <div class="flow">
+    <div class="flow-step"><span class="num">1</span><span class="label">Ir a panel Registros</span></div>
+    <div class="flow-step"><span class="num">2</span><span class="label">Aplicar filtros deseados</span></div>
+    <div class="flow-step"><span class="num">3</span><span class="label">Clic en "Excel" o "PDF"</span></div>
+    <div class="flow-step"><span class="num">4</span><span class="label">Descarga automática</span></div>
+  </div>
+
+  <h3>Flujo: Recuperar contraseña</h3>
+  <div class="flow">
+    <div class="flow-step"><span class="num">1</span><span class="label">Clic en "¿Olvidé contraseña?"</span></div>
+    <div class="flow-step"><span class="num">2</span><span class="label">Ingresar correo</span></div>
+    <div class="flow-step"><span class="num">3</span><span class="label">Supabase envía email</span></div>
+    <div class="flow-step"><span class="num">4</span><span class="label">Clic en enlace del email</span></div>
+    <div class="flow-step"><span class="num">5</span><span class="label">Modal de nueva contraseña</span></div>
+    <div class="flow-step"><span class="num">6</span><span class="label">Contraseña actualizada</span></div>
+  </div>
+
+  <div class="highlight warn">
+    <strong>Para convertir este documento a PDF:</strong> Abre <code>documentacion.html</code> en Chrome o Edge → presiona <strong>Ctrl+P</strong> → selecciona "Guardar como PDF" → ajusta márgenes a "Mínimo" → Guardar.
+  </div>
+</section>
+
+<div class="footer-doc">
+  <p><strong>Sistema M — Peravia</strong> · Documentación Técnica v1.0</p>
+  <p>Provincia de Peravia, República Dominicana · Abril 2026</p>
+  <p>Diseño: Moreila Guerrero — Warm Executive · Tecnología: Supabase + Vanilla JS</p>
+</div>
+
+</body>
+</html>

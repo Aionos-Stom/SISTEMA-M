@@ -6,8 +6,17 @@
 'use strict';
 
 /* ── CONFIGURACIÓN ─────────────────────────────────────── */
-const SUPABASE_URL = 'TU_SUPABASE_URL';
-const SUPABASE_ANON = 'TU_SUPABASE_ANON_KEY';
+// ┌─────────────────────────────────────────────────────────┐
+// │  SUPABASE — coloca aquí tus credenciales reales         │
+// │                                                         │
+// │  Dónde obtenerlas:                                      │
+// │  supabase.com → tu proyecto → Settings → API           │
+// │                                                         │
+// │  SUPABASE_URL  → "Project URL"                          │
+// │  SUPABASE_ANON → "anon / public" (bajo API Keys)        │
+// └─────────────────────────────────────────────────────────┘
+const SUPABASE_URL  = 'https://nmvqqbwfotvslwxkohrt.supabase.co';       // ← Project URL
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tdnFxYndmb3R2c2x3eGtvaHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MTc4NTksImV4cCI6MjA5Mjk5Mzg1OX0.lpvLNqaRy6XElWsxe_R09XecvFpWffdiye1uet0oxFU';  // ← pega aquí tu anon key
 
 // Cliente de Supabase (global - única fuente de verdad)
 if (!window.supabaseClient) {
@@ -96,6 +105,7 @@ const APP = {
   AUDIT_PAGE_SIZE: 20,
   chart:         null,
   searchDebounce: null,
+  _loginInProgress: false, // Flag para evitar race conditions en auth
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -110,38 +120,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function waitForSupabase() {
   return new Promise(resolve => {
-    // Si las credenciales son placeholders, usar modo demo
     if (SUPABASE_URL === 'TU_SUPABASE_URL' || SUPABASE_ANON === 'TU_SUPABASE_ANON_KEY') {
       DEMO_MODE = true;
       window.supabaseClient = createMockSupabase();
-      console.warn('⚠️ Modo demo activado - Supabase no está configurado');
+      console.warn('⚠️ Modo demo activado');
       resolve();
       return;
     }
 
-    // Esperar a que Supabase JS real esté disponible
-    if (window.supabase && window.supabase.createClient) {
-      window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    // Crear cliente una sola vez
+    const createClient = () => {
+      if (!window.supabaseClient) {
+        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+          auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true,
+            storageKey: 'peravia-auth-token', // clave única para evitar conflictos
+          }
+        });
+      }
+    };
+
+    if (window.supabase?.createClient) {
+      createClient();
       resolve();
-    } else {
-      const maxAttempts = 50; // 5 segundos máximo
-      let attempts = 0;
-      const int = setInterval(() => {
-        attempts++;
-        if (window.supabase && window.supabase.createClient) {
-          clearInterval(int);
-          window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(int);
-          // Fallback a modo demo si no se carga Supabase
-          console.warn('⚠️ Supabase no disponible - usando modo demo');
-          DEMO_MODE = true;
-          window.supabaseClient = createMockSupabase();
-          resolve();
-        }
-      }, 100);
+      return;
     }
+
+    let attempts = 0;
+    const int = setInterval(() => {
+      attempts++;
+      if (window.supabase?.createClient) {
+        clearInterval(int);
+        createClient();
+        resolve();
+      } else if (attempts >= 50) {
+        clearInterval(int);
+        console.warn('⚠️ Supabase no disponible - modo demo');
+        DEMO_MODE = true;
+        window.supabaseClient = createMockSupabase();
+        resolve();
+      }
+    }, 100);
   });
 }
 
@@ -152,35 +173,59 @@ async function init() {
   // Poblar selects
   populateSelects();
 
+  // Registrar eventos PRIMERO — antes de cualquier async
+  bindEvents();
+
   // Manejar URL de recuperación de contraseña
   const hash = window.location.hash;
   if (hash.includes('type=recovery')) {
     showModal('resetPasswordModal');
   }
 
-  // Listener de sesión de Supabase
+  // Listener de sesión — solo para cambios DESPUÉS del init
   if (getSupabase().auth && getSupabase().auth.onAuthStateChange) {
     getSupabase().auth.onAuthStateChange(async (event, session) => {
+      // TOKEN_REFRESHED: solo actualizar user, nada más
+      if (event === 'TOKEN_REFRESHED' && session) {
+        APP.currentUser = session.user;
+        return;
+      }
+      // SIGNED_OUT: limpiar y mostrar auth
+      if (event === 'SIGNED_OUT') {
+        APP.currentUser      = null;
+        APP.currentProfile   = null;
+        APP._loginInProgress = false;
+        showAuth();
+        return;
+      }
+      // SIGNED_IN: ignorar si ya hay perfil cargado o si estamos en flujo manual
       if (event === 'SIGNED_IN' && session) {
+        if (APP.currentProfile || APP._loginInProgress) return;
+        // Sesión restaurada desde otra pestaña o cookie — cargar dashboard
         APP.currentUser = session.user;
         await loadUserProfile();
-        await showDashboard();
-      } else if (event === 'SIGNED_OUT') {
-        APP.currentUser = null;
-        APP.currentProfile = null;
-        showAuth();
+        if (APP.currentProfile?.estado === 'aprobado') {
+          await showDashboard();
+        } else {
+          await getSupabase().auth.signOut();
+        }
       }
     });
   }
 
-  // Verificar sesión existente
+  // Verificar sesión existente al cargar la página
   try {
     const { data: sessionData } = await getSupabase().auth.getSession();
     const session = sessionData?.session;
     if (session) {
       APP.currentUser = session.user;
       await loadUserProfile();
-      await showDashboard();
+      if (APP.currentProfile?.estado === 'aprobado') {
+        await showDashboard();
+      } else {
+        await getSupabase().auth.signOut();
+        showAuth();
+      }
     } else {
       showAuth();
     }
@@ -188,8 +233,6 @@ async function init() {
     console.warn('Error al verificar sesión:', err);
     showAuth();
   }
-
-  bindEvents();
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -230,6 +273,15 @@ function showAuth() {
   document.getElementById('authSection').classList.remove('hidden');
   document.getElementById('dashboardSection').classList.add('hidden');
   document.querySelector('.site-footer').style.display = '';
+  // Limpiar formulario de login y mensajes al volver
+  document.getElementById('loginForm')?.reset();
+  const msg = document.getElementById('authMessage');
+  if (msg) { msg.className = 'status-message'; msg.textContent = ''; }
+  // Asegurar que se muestra la pestaña de login
+  document.getElementById('loginForm')?.classList.add('active');
+  document.getElementById('registerForm')?.classList.remove('active');
+  document.getElementById('showLogin')?.classList.add('active');
+  document.getElementById('showRegister')?.classList.remove('active');
 }
 
 async function showDashboard() {
@@ -239,8 +291,18 @@ async function showDashboard() {
   activatePanel('overview');
   updateSidebarUser();
   applyRolePermissions();
-  await Promise.all([loadVoters(), loadUsers()]);
+  // Mostrar loading en stats mientras carga
+  ['totalVoters','totalUsers','todayVoters','activeProvinces'].forEach(id => setEl(id, '…'));
+  try {
+    await Promise.all([loadVoters(), loadUsers()]);
+  } catch (err) {
+    console.error('Error cargando datos del dashboard:', err);
+  }
   renderOverview();
+  // Diagnóstico de permisos en consola (ayuda a detectar RLS)
+  if (!DEMO_MODE) {
+    console.info(`[Peravia] Sesión activa: ${APP.currentProfile?.nombre_completo} (${APP.currentProfile?.rol}) — ${APP.allVoters.length} registros cargados`);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -256,13 +318,25 @@ function applyRolePermissions() {
   const profile = APP.currentProfile;
   if (!profile) return;
 
-  // Mostrar/ocultar sección auditoría
+  const admin = isAdmin();
+
+  // Auditoría — solo Admin
   const auditBtn = document.getElementById('navAuditBtn');
-  if (isAdmin()) {
+  if (admin) {
     auditBtn?.classList.remove('section-hidden');
+  } else {
+    auditBtn?.classList.add('section-hidden');
   }
 
-  // Mostrar/ocultar columna acciones en tabla de registros
+  // Usuarios — solo Admin
+  const usersBtn = document.getElementById('manageUsersBtn');
+  if (admin) {
+    usersBtn?.classList.remove('section-hidden');
+  } else {
+    usersBtn?.classList.add('section-hidden');
+  }
+
+  // Columna acciones en tabla de registros — solo Coord o superior
   const actionsHead = document.getElementById('voterActionsHead');
   if (!isCoordOrAbove() && actionsHead) {
     actionsHead.style.display = 'none';
@@ -294,9 +368,11 @@ async function loadUserProfile() {
       .from('usuarios')
       .select('*')
       .eq('auth_user_id', APP.currentUser.id)
-      .single();
+      .maybeSingle();
     if (!error && data) {
       APP.currentProfile = data;
+    } else if (error) {
+      console.warn('Error cargando perfil:', error.message);
     }
   } catch (err) {
     console.warn('Error loading user profile:', err);
@@ -321,87 +397,84 @@ async function handleLogin(e) {
   e.preventDefault();
   const userInput = document.getElementById('loginUser').value.trim();
   const password  = document.getElementById('loginPassword').value;
-  
+
   if (!userInput) return showAuthMsg('error', 'Ingrese correo o nombre de usuario.');
-  if (!password) return showAuthMsg('error', 'Ingrese su contraseña.');
+  if (!password)  return showAuthMsg('error', 'Ingrese su contraseña.');
 
   setSubmitLoading('loginForm', true);
   try {
-    // En modo demo, aceptar cualquier credencial
+    APP._loginInProgress = true;
+
     if (DEMO_MODE) {
       showAuthMsg('success', '✓ Acceso en modo demo - Bienvenido');
-      setTimeout(() => {
-        APP.currentUser = { id: 'demo_user', email: userInput };
-        APP.currentProfile = {
-          auth_user_id: 'demo_user',
-          nombre_completo: 'Usuario Demo',
-          username: userInput,
-          rol: 'Administrador',
-          estado: 'aprobado'
-        };
-        showDashboard();
-      }, 1000);
+      APP.currentUser = { id: 'demo_user', email: userInput };
+      APP.currentProfile = {
+        auth_user_id: 'demo_user',
+        nombre_completo: 'Usuario Demo',
+        username: userInput,
+        rol: 'Administrador',
+        estado: 'aprobado'
+      };
+      await showDashboard();
       return;
     }
 
     let email = userInput;
-    
-    // Si no parece un email, buscar por username
     if (!userInput.includes('@')) {
-      const { data: found, error: findErr } = await getSupabase()
-        .from('usuarios')
-        .select('email')
-        .eq('username', userInput)
-        .maybeSingle();
-      
+      const { data: foundEmail, error: findErr } = await getSupabase()
+        .rpc('get_email_from_username', { p_username: userInput });
       if (findErr) throw findErr;
-      if (!found?.email) {
+      if (!foundEmail) {
         showAuthMsg('error', 'Usuario o correo no encontrado.');
         return;
       }
-      email = found.email;
+      email = foundEmail;
     }
 
     const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
     if (error) throw error;
+    if (!data?.user?.id) throw new Error('No se pudo verificar la identidad del usuario.');
 
-    if (!data?.user?.id) {
-      throw new Error('No se pudo verificar la identidad del usuario.');
-    }
-
-    // Verificar aprobación del usuario
     const { data: profile, error: profileErr } = await getSupabase()
-      .from('usuarios')
-      .select('estado')
-      .eq('auth_user_id', data.user.id)
-      .maybeSingle();
-    
+      .from('usuarios').select('*').eq('auth_user_id', data.user.id).maybeSingle();
     if (profileErr) throw profileErr;
-    
+
     if (!profile) {
       await getSupabase().auth.signOut();
       showAuthMsg('error', 'Perfil de usuario no encontrado.');
       return;
     }
-    
     if (profile.estado === 'pendiente') {
       await getSupabase().auth.signOut();
       showAuthMsg('error', 'Su cuenta está pendiente de aprobación por un administrador.');
       return;
     }
-    
     if (profile.estado === 'rechazado') {
       await getSupabase().auth.signOut();
       showAuthMsg('error', 'Su cuenta ha sido rechazada. Contacte al administrador.');
       return;
     }
 
-    await logAudit('SESSION_LOGIN', data.user.id, 'Inicio de sesión exitoso');
+    APP.currentUser    = data.user;
+    APP.currentProfile = profile;
+    await logAudit('SESSION_LOGIN', data.user.id, `Inicio de sesión — ${profile.nombre_completo} (${profile.rol})`);
     showAuthMsg('success', 'Accediendo al sistema...');
+    await showDashboard();
+
   } catch (err) {
     console.error('Error de login:', err);
     showAuthMsg('error', getAuthError(err.message));
+    try {
+      await getSupabase().from('auditoria').insert({
+        actor_id: null,
+        actor_nombre: document.getElementById('loginUser')?.value?.trim() || 'Desconocido',
+        actor_rol: '—', accion: 'SESSION_LOGIN_FAILED', objetivo: null,
+        detalles: `Intento fallido: ${err.message}`,
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) {}
   } finally {
+    APP._loginInProgress = false;
     setSubmitLoading('loginForm', false);
   }
 }
@@ -424,130 +497,74 @@ async function handleRegister(e) {
   const password   = document.getElementById('registerPassword').value;
   const confirm    = document.getElementById('registerPasswordConfirm').value;
 
-  // Validaciones
-  if (!name) return showAuthMsg('error', 'Nombre completo es requerido.');
-  if (!username) return showAuthMsg('error', 'Nombre de usuario es requerido.');
-  if (username.length < 3) return showAuthMsg('error', 'El nombre de usuario debe tener al menos 3 caracteres.');
-  if (!email) return showAuthMsg('error', 'Correo electrónico es requerido.');
-  if (!email.includes('@')) return showAuthMsg('error', 'Ingrese un correo válido.');
-  if (!phone) return showAuthMsg('error', 'Teléfono es requerido.');
-  if (!role) return showAuthMsg('error', 'Debe seleccionar un rol.');
-  if (!province) return showAuthMsg('error', 'Debe seleccionar un municipio.');
-  if (!zone) return showAuthMsg('error', 'Zona o demarcación es requerida.');
-  if (!password) return showAuthMsg('error', 'Contraseña es requerida.');
-  if (password.length < 6) return showAuthMsg('error', 'La contraseña debe tener al menos 6 caracteres.');
-  if (password !== confirm) return showAuthMsg('error', 'Las contraseñas no coinciden.');
+  // Validaciones — sin tocar el botón todavía
+  if (!name)              return showAuthMsg('error', 'Nombre completo es requerido.');
+  if (!username)          return showAuthMsg('error', 'Nombre de usuario es requerido.');
+  if (username.length < 3)return showAuthMsg('error', 'El usuario debe tener al menos 3 caracteres.');
+  if (!email || !email.includes('@')) return showAuthMsg('error', 'Ingrese un correo válido.');
+  if (!phone)             return showAuthMsg('error', 'Teléfono es requerido.');
+  if (!role)              return showAuthMsg('error', 'Debe seleccionar un rol.');
+  if (!province)          return showAuthMsg('error', 'Debe seleccionar un municipio.');
+  if (!zone)              return showAuthMsg('error', 'Zona o demarcación es requerida.');
+  if (!password)          return showAuthMsg('error', 'Contraseña es requerida.');
+  if (password.length < 6)return showAuthMsg('error', 'La contraseña debe tener al menos 6 caracteres.');
+  if (password !== confirm)return showAuthMsg('error', 'Las contraseñas no coinciden.');
 
   setSubmitLoading('registerForm', true);
   try {
-    // En modo demo, simplemente aceptar el registro
+    APP._loginInProgress = true; // Bloquear onAuthStateChange durante registro
+
     if (DEMO_MODE) {
-      showAuthMsg('success', '✓ Usuario creado exitosamente en modo demo');
+      showAuthMsg('success', '✓ Usuario creado en modo demo. Puede iniciar sesión.');
       document.getElementById('registerForm').reset();
-      setTimeout(() => {
-        document.getElementById('showLogin').click();
-      }, 1500);
+      // Cambiar a pestaña login sin setTimeout para que el finally corra
+      document.getElementById('showLogin').click();
       return;
     }
 
-    // Verificar si username ya existe
-    try {
-      const { data: existUser, error: checkErr } = await getSupabase()
-        .from('usuarios')
-        .select('id')
-        .eq('username', username)
-        .maybeSingle();
-      
-      if (existUser) {
-        showAuthMsg('error', 'El nombre de usuario ya está en uso. Intente con otro.');
-        return;
-      }
-    } catch (err) {
-      console.warn('No se pudo verificar username:', err);
+    const { data: usernameExists } = await getSupabase()
+      .rpc('check_username_exists', { p_username: username });
+    if (usernameExists) {
+      showAuthMsg('error', 'El nombre de usuario ya está en uso.');
+      return;
     }
 
-    // Crear usuario en Supabase Auth
-    let authData;
-    try {
-      const { data: data_, error: authErr } = await getSupabase().auth.signUp({ email, password });
-      if (authErr) {
-        if (authErr.message?.includes('already registered')) {
-          throw new Error('Este correo ya está registrado en el sistema.');
-        }
-        throw authErr;
-      }
-      authData = data_;
-    } catch (err) {
-      throw new Error('Error en autenticación: ' + (err.message || err));
+    const { data: authData, error: authErr } = await getSupabase().auth.signUp({ email, password });
+    if (authErr) {
+      if (authErr.message?.includes('already registered')) throw new Error('Este correo ya está registrado.');
+      throw authErr;
     }
-
     if (!authData?.user?.id) throw new Error('No se pudo crear la cuenta de autenticación.');
 
-    // Determinar si es primer usuario (auto-aprobar)
-    let estado = 'pendiente';
-    let rolFinal = role;
-    
-    try {
-      const { count, error: countErr } = await getSupabase()
-        .from('usuarios')
-        .select('id', { count: 'exact', head: true });
-      
-      if (count === 0 || count === null) {
-        estado = 'aprobado';
-        rolFinal = 'Administrador';
-      }
-    } catch (err) {
-      console.warn('No se pudo contar usuarios:', err);
-      // Continuar con valores por defecto
-    }
-
-    // Insertar perfil
-    try {
-      const { error: profileErr } = await getSupabase().from('usuarios').insert({
-        auth_user_id:    authData.user.id,
-        nombre_completo: name,
-        username,
-        email,
-        telefono:        phone,
-        rol:             rolFinal,
-        provincia:       province,
-        region,
-        municipio,
-        distrito,
-        zona:            zone,
-        estado,
-        created_at:      new Date().toISOString()
+    const { data: result, error: rpcErr } = await getSupabase()
+      .rpc('register_user_profile', {
+        p_auth_user_id:    authData.user.id,
+        p_nombre_completo: name,
+        p_username:        username,
+        p_email:           email,
+        p_telefono:        phone,
+        p_rol:             role,
+        p_provincia:       province,
+        p_region:          region,
+        p_municipio:       municipio,
+        p_distrito:        distrito,
+        p_zona:            zone,
       });
-      
-      if (profileErr) throw profileErr;
-    } catch (err) {
-      throw new Error('Error al crear perfil: ' + (err.message || err));
-    }
+    if (rpcErr) throw new Error('Error al crear perfil: ' + rpcErr.message);
 
-    const msgEst = estado === 'aprobado'
-      ? '✓ Usuario administrador creado. Ya puede iniciar sesión.'
-      : '✓ Solicitud enviada. Espere la aprobación de un administrador.';
-    showAuthMsg('success', msgEst);
-    
-    // Limpiar formulario
+    const estado = result?.estado || 'pendiente';
+    showAuthMsg('success', estado === 'aprobado'
+      ? '✓ Cuenta creada. Ya puede iniciar sesión.'
+      : '✓ Solicitud enviada. Espere la aprobación del administrador.');
     document.getElementById('registerForm').reset();
-    
-    // Cambiar a pestaña de login después de 2 segundos
     if (estado === 'aprobado') {
-      setTimeout(() => {
-        document.getElementById('showLogin').click();
-      }, 2000);
-    }
-    
-    try {
-      await logAudit('USER_CREATE', authData.user.id, `Usuario ${username} registrado con rol ${rolFinal}`);
-    } catch (err) {
-      console.warn('No se pudo registrar auditoría:', err);
+      setTimeout(() => document.getElementById('showLogin').click(), 2000);
     }
   } catch (err) {
     console.error('Error en registro:', err);
     showAuthMsg('error', getAuthError(err.message || 'Error desconocido al registrar'));
   } finally {
+    APP._loginInProgress = false;
     setSubmitLoading('registerForm', false);
   }
 }
@@ -565,6 +582,12 @@ async function handleForgotPassword(e) {
     });
     if (error) throw error;
     showStatusMsg('forgotMessage', 'success', 'Se envió el enlace de recuperación a su correo.');
+    await getSupabase().from('auditoria').insert({
+      actor_id: null, actor_nombre: email, actor_rol: '—',
+      accion: 'PASSWORD_RESET_REQUEST', objetivo: email,
+      detalles: `Solicitud de recuperación de contraseña para: ${email}`,
+      created_at: new Date().toISOString(),
+    });
   } catch (err) {
     showStatusMsg('forgotMessage', 'error', getAuthError(err.message));
   }
@@ -580,6 +603,7 @@ async function handleResetPassword(e) {
     const { error } = await getSupabase().auth.updateUser({ password: pwd });
     if (error) throw error;
     showStatusMsg('resetMessage', 'success', 'Contraseña actualizada. Puede iniciar sesión.');
+    await logAudit('PASSWORD_RESET_COMPLETE', APP.currentUser?.id, 'Contraseña actualizada exitosamente');
     setTimeout(() => { closeModal('resetPasswordModal'); window.location.hash = ''; }, 2000);
   } catch (err) {
     showStatusMsg('resetMessage', 'error', getAuthError(err.message));
@@ -590,14 +614,22 @@ async function handleResetPassword(e) {
    LOGOUT
 ══════════════════════════════════════════════════════════ */
 async function handleLogout() {
-  await logAudit('SESSION_LOGOUT', APP.currentUser?.id, 'Cierre de sesión');
+  try {
+    await logAudit('SESSION_LOGOUT', APP.currentUser?.id, 'Cierre de sesión');
+  } catch (_) {}
+  // Limpiar estado ANTES de signOut para evitar race conditions
+  APP.currentUser    = null;
+  APP.currentProfile = null;
+  APP._loginInProgress = false;
+  // Limpiar datos en memoria
+  APP.allVoters      = [];
+  APP.allUsers       = [];
+  APP.filteredVoters = [];
+  APP.auditLogs      = [];
+  if (APP.chart) { APP.chart.destroy(); APP.chart = null; }
   await getSupabase().auth.signOut();
-  // En modo demo, el onAuthStateChange no se dispara, forzar showAuth
-  if (DEMO_MODE) {
-    APP.currentUser = null;
-    APP.currentProfile = null;
-    showAuth();
-  }
+  // Forzar showAuth siempre (por si onAuthStateChange no dispara en demo)
+  showAuth();
   showNotif('info', 'Sesión cerrada', 'Hasta luego.');
 }
 
@@ -606,7 +638,6 @@ async function handleLogout() {
 ══════════════════════════════════════════════════════════ */
 async function loadVoters() {
   try {
-    // En modo demo, no hay datos que cargar
     if (DEMO_MODE) {
       APP.allVoters = [];
       APP.filteredVoters = [];
@@ -615,27 +646,51 @@ async function loadVoters() {
       return;
     }
 
-    let query = getSupabase().from('registros').select('*').order('created_at', { ascending: false });
-
-    // Filtrar por provincia según rol
     const p = APP.currentProfile;
-    if (p && !isAdmin() && !isCoordOrAbove()) {
-      query = query.eq('registrado_por_id', APP.currentUser.id);
-    } else if (p && !isAdmin() && isCoordOrAbove()) {
+    let query = getSupabase()
+      .from('registros')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(2000);
+
+    // Admin → sin filtro (ve todo)
+    // Coordinador → su provincia
+    // Supervisor / Registrador / Observador → sus propios registros
+    if (!p) {
+      // Sin perfil cargado, no cargar nada
+      return;
+    } else if (isAdmin()) {
+      // sin filtro
+    } else if (isCoordOrAbove()) {
       query = query.eq('provincia', p.provincia);
+    } else {
+      // Registrador, Supervisor, Observador — solo lo que ellos registraron
+      query = query.eq('registrado_por_id', APP.currentUser.id);
     }
 
     const { data, error } = await query;
-    if (error) throw error;
-    APP.allVoters = data || [];
+
+    if (error) {
+      // Error de RLS — mostrar aviso claro
+      if (error.code === '42501' || error.message?.includes('policy') || error.message?.includes('permission')) {
+        showNotif('error', 'Sin permisos de lectura', 'Aplica el archivo supabase_patch.sql en Supabase para corregir las políticas RLS.');
+      }
+      throw error;
+    }
+
+    APP.allVoters      = data || [];
     APP.filteredVoters = [...APP.allVoters];
     renderVotersTable(APP.filteredVoters);
     updateFilterBadge(APP.filteredVoters.length);
     populateDynamicFilters(APP.allVoters);
+
+    console.info(`[Peravia] loadVoters → ${APP.allVoters.length} registros para ${p.nombre_completo} (${p.rol}) | uid=${APP.currentUser?.id}`);
   } catch (err) {
     console.error('Error cargando registros:', err);
-    APP.allVoters = [];
+    APP.allVoters     = [];
     APP.filteredVoters = [];
+    renderVotersTable([]);
+    updateFilterBadge(0);
   }
 }
 
@@ -648,7 +703,11 @@ async function loadUsers() {
       return;
     }
 
-    let query = getSupabase().from('usuarios').select('*').order('created_at', { ascending: false });
+    let query = getSupabase()
+      .from('usuarios')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
     if (!isAdmin()) {
       query = query.eq('provincia', APP.currentProfile?.provincia);
     }
@@ -664,9 +723,8 @@ async function loadUsers() {
 
 async function loadAuditLogs() {
   try {
-    if (!isAdmin()) return;
-    
-    // En modo demo, no hay logs que cargar
+    if (!isAdmin()) return; // Solo administradores
+
     if (DEMO_MODE) {
       APP.auditLogs = [];
       renderAuditTable([]);
@@ -674,7 +732,7 @@ async function loadAuditLogs() {
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from('auditoria')
       .select('*')
       .order('created_at', { ascending: false });
@@ -722,27 +780,38 @@ async function handleVoterSubmit(e) {
   try {
     if (editId) {
       // Editar
-      const { error } = await getSupabase().from('registros').update(payload).eq('id', editId);
-      if (error) throw error;
+      const { error: updateErr } = await getSupabase().from('registros').update(payload).eq('id', editId);
+      if (updateErr) {
+        if (updateErr.code === '42501' || updateErr.message?.includes('policy')) {
+          throw new Error('Sin permisos para editar este registro (RLS).');
+        }
+        throw updateErr;
+      }
       showStatusMsg('voterMessage', 'success', 'Registro actualizado correctamente.');
       showNotif('success', 'Registro actualizado', payload.nombre);
       await logAudit('VOTER_EDIT', editId, `Registro ${payload.nombre} (${payload.cedula}) editado`);
       cancelEditVoter();
     } else {
       // Verificar duplicado
-      const { data: dup } = await supabase
+      const { data: dup } = await getSupabase()
         .from('registros')
         .select('id, registrado_por_nombre')
         .eq('cedula', payload.cedula)
-        .single();
+        .maybeSingle();
       if (dup) {
         await logAudit('VOTER_DUPLICATE', dup.id, `Intento de duplicado: ${payload.cedula}`);
         showDuplicateModal(payload.nombre, dup.registrado_por_nombre);
         return;
       }
       payload.created_at = new Date().toISOString();
-      const { error } = await getSupabase().from('registros').insert(payload);
-      if (error) throw error;
+      const { error: insertErr } = await getSupabase().from('registros').insert(payload);
+      if (insertErr) {
+        // Mensaje específico según tipo de error
+        if (insertErr.code === '42501' || insertErr.message?.includes('policy')) {
+          throw new Error('Sin permisos para guardar registros. Contacte al administrador (RLS).');
+        }
+        throw insertErr;
+      }
       showStatusMsg('voterMessage', 'success', '¡Ciudadano registrado exitosamente!');
       showNotif('success', 'Registro creado', payload.nombre);
       document.getElementById('voterForm').reset();
@@ -854,28 +923,49 @@ function openEditUser(user) {
   showModal('userEditModal');
 }
 
-async function toggleUserStatus(userId, currentStatus, userName) {
+async function toggleUserStatus(userId, currentStatus, userName, authUserId) {
   if (!isAdmin()) return;
-  const newStatus = currentStatus === 'aprobado' ? 'rechazado' : 'aprobado';
-  const label = newStatus === 'aprobado' ? 'aprobar' : 'rechazar';
-  if (!confirm(`¿Desea ${label} al usuario "${userName}"?`)) return;
-  const { error } = await getSupabase().from('usuarios').update({ estado: newStatus }).eq('id', userId);
-  if (error) { showNotif('error', 'Error', 'No se pudo actualizar el estado.'); return; }
-  const action = newStatus === 'aprobado' ? 'USER_APPROVE' : 'USER_DELETE';
-  showNotif(newStatus === 'aprobado' ? 'success' : 'warning',
-    `Usuario ${newStatus}`, userName);
-  await logAudit(action, userId, `${userName} → ${newStatus}`);
-  await loadUsers();
+  // Si está aprobado → rechazar = borrar completamente
+  // Si está pendiente/rechazado → aprobar
+  if (currentStatus === 'aprobado') {
+    if (!confirm(`¿Rechazar y ELIMINAR al usuario "${userName}"? Esta acción borrará su cuenta completamente y podrá registrarse de nuevo.`)) return;
+    await _deleteUserCompletely(userId, authUserId, userName, 'USER_REJECT');
+  } else {
+    if (!confirm(`¿Aprobar al usuario "${userName}"?`)) return;
+    const { error } = await getSupabase().from('usuarios').update({ estado: 'aprobado' }).eq('id', userId);
+    if (error) { showNotif('error', 'Error', 'No se pudo aprobar el usuario.'); return; }
+    showNotif('success', 'Usuario aprobado', userName);
+    await logAudit('USER_APPROVE', userId, `${userName} → aprobado`);
+    await loadUsers();
+  }
 }
 
-async function deleteUser(userId, userName) {
+async function _deleteUserCompletely(userId, authUserId, userName, auditAction) {
+  try {
+    // 1. Borrar perfil de la tabla usuarios
+    const { error: delErr } = await getSupabase().from('usuarios').delete().eq('id', userId);
+    if (delErr) throw delErr;
+    // 2. Borrar de Supabase Auth via RPC (requiere service_role en el servidor)
+    //    Si no hay RPC disponible, al menos el perfil queda borrado y el correo libre
+    try {
+      await getSupabase().rpc('delete_auth_user', { p_auth_user_id: authUserId });
+    } catch (_) {
+      // RPC opcional — si no existe, el perfil ya fue borrado y el correo queda libre en auth
+      // El usuario podrá registrarse de nuevo (Supabase permite re-registro si el perfil no existe)
+      console.warn('RPC delete_auth_user no disponible — solo se borró el perfil');
+    }
+    showNotif('warning', 'Usuario eliminado', userName);
+    await logAudit(auditAction || 'USER_DELETE', userId, `${userName} eliminado completamente`);
+    await loadUsers();
+  } catch (err) {
+    showNotif('error', 'Error', 'No se pudo eliminar: ' + err.message);
+  }
+}
+
+async function deleteUser(userId, userName, authUserId) {
   if (!isAdmin()) return;
-  if (!confirm(`¿Eliminar al usuario "${userName}" permanentemente?`)) return;
-  const { error } = await getSupabase().from('usuarios').delete().eq('id', userId);
-  if (error) { showNotif('error', 'Error', 'No se pudo eliminar el usuario.'); return; }
-  showNotif('warning', 'Usuario eliminado', userName);
-  await logAudit('USER_DELETE', userId, `${userName} eliminado`);
-  await loadUsers();
+  if (!confirm(`¿Eliminar al usuario "${userName}" permanentemente? Se borrará su cuenta y podrá registrarse de nuevo.`)) return;
+  await _deleteUserCompletely(userId, authUserId, userName, 'USER_DELETE');
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -949,10 +1039,10 @@ function renderUsersTable(users) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           ${canManage && !isMe ? `
-          <button class="icon-btn approve-btn" onclick="toggleUserStatus('${u.id}','${u.estado}','${esc(u.nombre_completo)}')" title="${u.estado === 'aprobado' ? 'Desactivar' : 'Aprobar'}">
+          <button class="icon-btn approve-btn" onclick="toggleUserStatus('${u.id}','${u.estado}','${esc(u.nombre_completo)}','${u.auth_user_id || ''}')" title="${u.estado === 'aprobado' ? 'Rechazar/Eliminar' : 'Aprobar'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
-          <button class="icon-btn delete-btn" onclick="deleteUser('${u.id}','${esc(u.nombre_completo)}')" title="Eliminar">
+          <button class="icon-btn delete-btn" onclick="deleteUser('${u.id}','${esc(u.nombre_completo)}','${u.auth_user_id || ''}')" title="Eliminar permanentemente">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>` : ''}
         </div>
@@ -1275,6 +1365,7 @@ function exportAuditToExcel() {
   const ws = XLSX.utils.json_to_sheet(data);
   XLSX.utils.book_append_sheet(wb, ws, 'Auditoría');
   XLSX.writeFile(wb, `Peravia_Auditoria_${new Date().toISOString().substring(0,10)}.xlsx`);
+  logAudit('AUDIT_EXPORT', null, `Exportación de auditoría: ${data.length} registros`);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1310,7 +1401,7 @@ function activatePanel(panelId) {
   document.querySelectorAll('.nav-item').forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
   document.querySelectorAll(`[data-panel="${panelId}"]`).forEach(b => { b.classList.add('active'); b.setAttribute('aria-current', 'page'); });
 
-  // Mostrar panel
+  // Mostrar panel — con verificación de permisos
   switch (panelId) {
     case 'overview':
       document.getElementById('panelOverview')?.classList.add('active');
@@ -1322,9 +1413,11 @@ function activatePanel(panelId) {
       document.getElementById('panelConsulta')?.classList.add('active');
       break;
     case 'usuarios':
+      if (!isAdmin()) { activatePanel('overview'); return; }
       document.getElementById('usersSection')?.classList.remove('section-hidden');
       break;
     case 'auditoria':
+      if (!isAdmin()) { activatePanel('overview'); return; }
       document.getElementById('panelAudit')?.classList.remove('section-hidden');
       loadAuditLogs();
       break;
@@ -1433,18 +1526,20 @@ function setSubmitLoading(formId, loading) {
   if (!form) return;
   const btn = form.querySelector('button[type="submit"]');
   if (!btn) return;
-  
-  // Guardar el HTML original en la primera llamada
-  if (!btn.dataset.originalHtml) {
-    btn.dataset.originalHtml = btn.innerHTML;
-  }
-  
-  btn.disabled = loading;
-  
+
   if (loading) {
-    btn.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 8px;"><span class="spinner"></span> Procesando…</span>';
+    // Guardar HTML original solo si no está ya en loading
+    if (!btn.dataset.originalHtml) {
+      btn.dataset.originalHtml = btn.innerHTML;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="spinner"></span> Procesando…</span>';
   } else {
-    btn.innerHTML = btn.dataset.originalHtml;
+    btn.disabled = false;
+    if (btn.dataset.originalHtml) {
+      btn.innerHTML = btn.dataset.originalHtml;
+      delete btn.dataset.originalHtml; // Limpiar para próxima vez
+    }
   }
 }
 
