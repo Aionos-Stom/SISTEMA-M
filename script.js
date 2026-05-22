@@ -519,15 +519,18 @@ async function showDashboard() {
   startInactivityWatch();     // ← Vigilancia de 30 min de inactividad
   // Mostrar loading en stats mientras carga
   ['totalVoters','totalUsers','todayVoters','activeProvinces'].forEach(id => setEl(id, '…'));
-  try {
-    await Promise.all([loadVoters(), loadUsers()]);
-  } catch (err) {
-    console.error('Error cargando datos del dashboard:', err);
-  }
-  renderOverview();
-  // Diagnóstico de permisos en consola (ayuda a detectar RLS)
+
+  // ── Cargar datos en background (SIN bloquear el UI ni el flujo de login) ──
+  // Esto evita que el botón "Entrar" quede en "Procesando..." si la BD tarda.
+  Promise.all([loadVoters(), loadUsers()])
+    .then(() => renderOverview())
+    .catch(err => {
+      console.warn('Error cargando datos del dashboard:', err);
+      renderOverview(); // Mostrar resumen con lo que haya
+    });
+
   if (!DEMO_MODE) {
-    console.info(`[Peravia] Sesión activa: ${APP.currentProfile?.nombre_completo} (${APP.currentProfile?.rol}) — ${APP.allVoters.length} registros cargados`);
+    console.info(`[Peravia] Sesión activa: ${APP.currentProfile?.nombre_completo} (${APP.currentProfile?.rol}) — cargando datos en segundo plano…`);
   }
 }
 
@@ -1163,14 +1166,24 @@ async function loadVoters() {
 }
 
 async function loadUsers() {
-  try {
-    // En modo demo, no hay usuarios que cargar
-    if (DEMO_MODE) {
-      APP.allUsers = [];
-      renderUsersTable([]);
-      return;
-    }
+  // En modo demo, no hay usuarios que cargar
+  if (DEMO_MODE) {
+    APP.allUsers = [];
+    renderUsersTable([]);
+    return;
+  }
 
+  // Mostrar estado de carga en la tabla
+  const tbody = document.getElementById('usersTableBody');
+  if (tbody) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">
+      <span style="display:inline-flex;align-items:center;gap:8px">
+        <span class="spinner"></span> Cargando usuarios…
+      </span>
+    </td></tr>`;
+  }
+
+  try {
     let query = getSupabase()
       .from('usuarios')
       .select('*')
@@ -1179,13 +1192,25 @@ async function loadUsers() {
     if (!isAdmin()) {
       query = query.eq('provincia', APP.currentProfile?.provincia);
     }
-    const { data, error } = await query;
+
+    const { data, error } = await withTimeout(query, 15000, 'cargar usuarios');
     if (error) throw error;
+
     APP.allUsers = data || [];
     renderUsersTable(APP.allUsers);
+    renderUserStats(APP.allUsers);
   } catch (err) {
     console.error('Error cargando usuarios:', err);
     APP.allUsers = [];
+    if (tbody) {
+      const isTimeout = err.message?.includes('Tiempo de espera');
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="12">
+        <span style="color:var(--danger)">
+          ${isTimeout ? '⏱ La consulta tardó demasiado.' : '⚠️ ' + esc(err.message || 'Error al cargar usuarios.')}
+        </span>
+        <button class="text-btn" style="margin-left:10px" onclick="loadUsers()">Reintentar</button>
+      </td></tr>`;
+    }
   }
 }
 
@@ -1355,16 +1380,37 @@ async function handleUserEdit(e) {
     distrito:        document.getElementById('editUserDistrito').value.trim(),
     zona:            document.getElementById('editUserZone').value.trim(),
   };
+
+  // Validaciones básicas
+  if (!payload.nombre_completo) return showStatusMsg('userEditMessage', 'error', 'El nombre no puede estar vacío.');
+  if (!payload.username)        return showStatusMsg('userEditMessage', 'error', 'El usuario no puede estar vacío.');
+  if (!payload.rol)             return showStatusMsg('userEditMessage', 'error', 'Debe seleccionar un rol.');
+
+  const saveBtn = e.target.querySelector('button[type="submit"]');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span class="spinner"></span> Guardando…'; }
+
   try {
-    const { error } = await getSupabase().from('usuarios').update(payload).eq('id', id);
+    const { error } = await withTimeout(
+      getSupabase().from('usuarios').update(payload).eq('id', id),
+      12000, 'actualizar usuario'
+    );
     if (error) throw error;
-    showStatusMsg('userEditMessage', 'success', 'Usuario actualizado correctamente.');
+
+    showStatusMsg('userEditMessage', 'success', '✓ Usuario actualizado correctamente.');
     showNotif('success', 'Usuario actualizado', payload.nombre_completo);
     await logAudit('USER_EDIT', id, `Usuario ${payload.username} editado`);
     await loadUsers();
     setTimeout(() => closeModal('userEditModal'), 1400);
   } catch (err) {
-    showStatusMsg('userEditMessage', 'error', 'Error: ' + err.message);
+    const msg = err.message?.includes('duplicate') || err.message?.includes('unique')
+      ? 'El usuario o correo ya existe en el sistema.'
+      : (err.message || 'No se pudo actualizar el usuario.');
+    showStatusMsg('userEditMessage', 'error', msg);
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar cambios`;
+    }
   }
 }
 
@@ -1400,37 +1446,50 @@ async function toggleUserStatus(userId, currentStatus, userName, authUserId) {
   // Si está aprobado → rechazar = borrar completamente
   // Si está pendiente/rechazado → aprobar
   if (currentStatus === 'aprobado') {
-    if (!confirm(`¿Rechazar y ELIMINAR al usuario "${userName}"? Esta acción borrará su cuenta completamente y podrá registrarse de nuevo.`)) return;
+    if (!confirm(`¿Rechazar y ELIMINAR al usuario "${userName}"?\n\nEsta acción borrará su cuenta completamente y no se puede deshacer.`)) return;
     await _deleteUserCompletely(userId, authUserId, userName, 'USER_REJECT');
   } else {
-    if (!confirm(`¿Aprobar al usuario "${userName}"?`)) return;
-    const { error } = await getSupabase().from('usuarios').update({ estado: 'aprobado' }).eq('id', userId);
-    if (error) { showNotif('error', 'Error', 'No se pudo aprobar el usuario.'); return; }
-    showNotif('success', 'Usuario aprobado', userName);
-    await logAudit('USER_APPROVE', userId, `${userName} → aprobado`);
-    await loadUsers();
+    if (!confirm(`¿Aprobar al usuario "${userName}"?\n\nTendrá acceso completo al sistema según su rol.`)) return;
+    try {
+      const { error } = await withTimeout(
+        getSupabase().from('usuarios').update({ estado: 'aprobado' }).eq('id', userId),
+        12000, 'aprobar usuario'
+      );
+      if (error) throw error;
+      showNotif('success', 'Usuario aprobado ✓', userName);
+      await logAudit('USER_APPROVE', userId, `${userName} → aprobado`);
+      await loadUsers();
+    } catch (err) {
+      showNotif('error', 'Error al aprobar', err.message || 'No se pudo aprobar el usuario.');
+    }
   }
 }
 
 async function _deleteUserCompletely(userId, authUserId, userName, auditAction) {
   try {
     // 1. Borrar perfil de la tabla usuarios
-    const { error: delErr } = await getSupabase().from('usuarios').delete().eq('id', userId);
+    const { error: delErr } = await withTimeout(
+      getSupabase().from('usuarios').delete().eq('id', userId),
+      12000, 'eliminar perfil'
+    );
     if (delErr) throw delErr;
-    // 2. Borrar de Supabase Auth via RPC (requiere service_role en el servidor)
-    //    Si no hay RPC disponible, al menos el perfil queda borrado y el correo libre
+
+    // 2. Borrar de Supabase Auth via RPC (opcional — requiere función en DB)
     try {
-      await getSupabase().rpc('delete_auth_user', { p_auth_user_id: authUserId });
-    } catch (_) {
-      // RPC opcional — si no existe, el perfil ya fue borrado y el correo queda libre en auth
-      // El usuario podrá registrarse de nuevo (Supabase permite re-registro si el perfil no existe)
-      console.warn('RPC delete_auth_user no disponible — solo se borró el perfil');
+      await withTimeout(
+        getSupabase().rpc('delete_auth_user', { p_auth_user_id: authUserId }),
+        10000, 'eliminar cuenta auth'
+      );
+    } catch (rpcErr) {
+      // RPC opcional — el perfil ya fue borrado; correo queda libre en auth
+      console.warn('RPC delete_auth_user no disponible — solo se borró el perfil:', rpcErr.message);
     }
+
     showNotif('warning', 'Usuario eliminado', userName);
     await logAudit(auditAction || 'USER_DELETE', userId, `${userName} eliminado completamente`);
     await loadUsers();
   } catch (err) {
-    showNotif('error', 'Error', 'No se pudo eliminar: ' + err.message);
+    showNotif('error', 'Error al eliminar', err.message || 'No se pudo eliminar el usuario.');
   }
 }
 
@@ -1560,22 +1619,80 @@ function renderVotersPagination(total) {
   container.appendChild(next);
 }
 
+/* ── Clase CSS según el rol del usuario ─────────────────────────── */
+function getUserRoleClass(role) {
+  const map = {
+    'Administrador': 'role-admin',
+    'Coordinador':   'role-coord',
+    'Supervisor':    'role-super',
+    'Registrador':   'role-reg',
+    'Observador':    'role-obs',
+  };
+  return map[role] || 'role-obs';
+}
+
+/* ── Contador de usuarios por estado ────────────────────────────── */
+function renderUserStats(users) {
+  const container = document.getElementById('userStatsBar');
+  if (!container) return;
+  const total    = users.length;
+  const approved = users.filter(u => u.estado === 'aprobado').length;
+  const pending  = users.filter(u => u.estado === 'pendiente').length;
+  const rejected = users.filter(u => u.estado === 'rechazado').length;
+  container.innerHTML = `
+    <span class="user-stat-chip chip-total">${total} usuario${total !== 1 ? 's' : ''}</span>
+    <span class="user-stat-chip chip-approved">${approved} aprobado${approved !== 1 ? 's' : ''}</span>
+    ${pending  ? `<span class="user-stat-chip chip-pending">${pending} pendiente${pending !== 1 ? 's' : ''}</span>` : ''}
+    ${rejected ? `<span class="user-stat-chip chip-rejected">${rejected} rechazado${rejected !== 1 ? 's' : ''}</span>` : ''}
+  `;
+}
+
+/* ── Filtro de usuarios (client-side) ───────────────────────────── */
+function filterUsers() {
+  const search = (document.getElementById('usersSearch')?.value || '').toLowerCase();
+  const role   = document.getElementById('usersFilterRole')?.value  || '';
+  const estado = document.getElementById('usersFilterEstado')?.value || '';
+
+  const filtered = APP.allUsers.filter(u => {
+    const text = [u.nombre_completo, u.username, u.email, u.provincia, u.zona].join(' ').toLowerCase();
+    return (
+      (!search || text.includes(search)) &&
+      (!role   || u.rol    === role) &&
+      (!estado || u.estado === estado)
+    );
+  });
+  renderUsersTable(filtered);
+  renderUserStats(filtered);
+}
+
 function renderUsersTable(users) {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;
   if (!users.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No hay usuarios para mostrar.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      No hay usuarios para mostrar.
+    </td></tr>`;
     return;
   }
   const canManage = isAdmin();
   tbody.innerHTML = users.map(u => {
-    const isMe = u.auth_user_id === APP.currentUser?.id;
+    const isMe     = u.auth_user_id === APP.currentUser?.id;
+    const isPending = u.estado === 'pendiente';
+    const isRejected = u.estado === 'rechazado';
+    const rowClass = isPending ? ' class="user-row-pending"' : isRejected ? ' class="user-row-rejected"' : '';
     return `
-    <tr>
-      <td><strong>${esc(u.nombre_completo)}</strong></td>
+    <tr${rowClass}>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="user-avatar-mini">${(u.nombre_completo || u.username || '?').charAt(0).toUpperCase()}</div>
+          <strong>${esc(u.nombre_completo)}</strong>
+          ${isMe ? '<span class="badge" style="font-size:0.65rem;padding:1px 6px">Tú</span>' : ''}
+        </div>
+      </td>
       <td>${esc(u.username)}</td>
-      <td>${esc(u.email)}</td>
-      <td><span class="status-badge status-approved">${esc(u.rol)}</span></td>
+      <td style="font-size:0.8rem">${esc(u.email)}</td>
+      <td><span class="status-badge ${getUserRoleClass(u.rol)}">${esc(u.rol)}</span></td>
       <td>${esc(u.telefono || '—')}</td>
       <td>${esc(u.region || '—')}</td>
       <td>${esc(u.provincia || '—')}</td>
@@ -1585,12 +1702,17 @@ function renderUsersTable(users) {
       <td><span class="status-badge ${u.estado === 'aprobado' ? 'status-approved' : u.estado === 'pendiente' ? 'status-pending' : 'status-rejected'}">${u.estado || '—'}</span></td>
       <td>
         <div class="td-actions">
-          <button class="icon-btn edit-btn" onclick="openEditUser(${JSON.stringify(u).replace(/"/g, '&quot;')})" title="Editar">
+          <button class="icon-btn edit-btn" onclick="openEditUser(${JSON.stringify(u).replace(/"/g, '&quot;')})" title="Editar usuario">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
           ${canManage && !isMe ? `
-          <button class="icon-btn approve-btn" onclick="toggleUserStatus('${u.id}','${u.estado}','${esc(u.nombre_completo)}','${u.auth_user_id || ''}')" title="${u.estado === 'aprobado' ? 'Rechazar/Eliminar' : 'Aprobar'}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <button class="icon-btn ${u.estado === 'aprobado' ? 'delete-btn' : 'approve-btn'}"
+            onclick="toggleUserStatus('${u.id}','${u.estado}','${esc(u.nombre_completo)}','${u.auth_user_id || ''}')"
+            title="${u.estado === 'aprobado' ? 'Rechazar / Eliminar' : 'Aprobar usuario'}">
+            ${u.estado === 'aprobado'
+              ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+              : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
+            }
           </button>
           <button class="icon-btn delete-btn" onclick="deleteUser('${u.id}','${esc(u.nombre_completo)}','${u.auth_user_id || ''}')" title="Eliminar permanentemente">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -2234,6 +2356,18 @@ function bindEvents() {
   document.getElementById('closeUserEditModalBtn')?.addEventListener('click', () => closeModal('userEditModal'));
   document.getElementById('cancelUserEditBtn')?.addEventListener('click', () => closeModal('userEditModal'));
 
+  // Filtros de la sección usuarios
+  ['usersSearch','usersFilterRole','usersFilterEstado'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', filterUsers);
+  });
+  document.getElementById('usersRefreshBtn')?.addEventListener('click', () => {
+    loadUsers();
+    // Limpiar filtros al recargar
+    ['usersSearch','usersFilterRole','usersFilterEstado'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+  });
+
   // Modales — cerrar al clicar fondo
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => {
@@ -2309,4 +2443,6 @@ window.openEditUser       = openEditUser;
 window.toggleUserStatus   = toggleUserStatus;
 window.deleteUser         = deleteUser;
 window.removeProfilePhoto = removeProfilePhoto;
+window.loadUsers          = loadUsers;    // para botón "Reintentar" en tabla de usuarios
+window.openProfileModal   = openProfileModal;
 window.openProfileModal   = openProfileModal;

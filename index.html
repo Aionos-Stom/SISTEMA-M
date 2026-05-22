@@ -562,8 +562,37 @@
             <h3>Usuarios del sistema</h3>
             <p>Gestión interna de accesos y perfiles de Peravia.</p>
           </div>
-          <span class="soft-note" id="userPermissionsNote">Visualización según permisos</span>
+          <div class="users-header-actions">
+            <div id="userStatsBar" class="user-stats-bar"></div>
+            <button class="secondary-btn" id="usersRefreshBtn" type="button" title="Recargar usuarios">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Actualizar
+            </button>
+          </div>
         </div>
+
+        <!-- Barra de búsqueda y filtros -->
+        <div class="users-filter-bar">
+          <div class="users-search-wrap">
+            <svg class="users-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" id="usersSearch" placeholder="Buscar por nombre, usuario, correo, zona…" aria-label="Buscar usuarios" />
+          </div>
+          <select id="usersFilterRole" aria-label="Filtrar por rol">
+            <option value="">Todos los roles</option>
+            <option value="Administrador">Administrador</option>
+            <option value="Coordinador">Coordinador</option>
+            <option value="Supervisor">Supervisor</option>
+            <option value="Registrador">Registrador</option>
+            <option value="Observador">Observador</option>
+          </select>
+          <select id="usersFilterEstado" aria-label="Filtrar por estado">
+            <option value="">Todos los estados</option>
+            <option value="aprobado">Aprobados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="rechazado">Rechazados</option>
+          </select>
+        </div>
+
         <div class="table-wrap table-wrap-fixed">
           <table role="grid" aria-label="Tabla de usuarios">
             <thead>

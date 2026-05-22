@@ -1869,3 +1869,160 @@ tbody tr:last-child td { border-bottom: none; }
   border-color: rgba(255,255,255,0.1);
   border-top-color: var(--teal-mid, #3BA5A5);
 }
+
+/* ══════════════════════════════════════════════════════
+   21. SECCIÓN USUARIOS — Mejoras de UX y colores de rol
+══════════════════════════════════════════════════════ */
+
+/* ── Colores de badges por ROL ──────────────────────────────────── */
+.role-admin {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+.role-coord {
+  background: #CCFBF1;
+  color: #0F766E;
+}
+.role-super {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+.role-reg {
+  background: #DCFCE7;
+  color: #15803D;
+}
+.role-obs {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+[data-theme="dark"] .role-admin { background: rgba(220,38,38,0.18); color: #FCA5A5; }
+[data-theme="dark"] .role-coord { background: rgba(15,118,110,0.20); color: #5EEAD4; }
+[data-theme="dark"] .role-super { background: rgba(29,78,216,0.20);  color: #93C5FD; }
+[data-theme="dark"] .role-reg   { background: rgba(21,128,61,0.20);  color: #86EFAC; }
+[data-theme="dark"] .role-obs   { background: rgba(71,85,105,0.20);  color: #94A3B8; }
+
+/* ── Filas de usuario con estado destacado ───────────────────────── */
+tr.user-row-pending {
+  background: rgba(217,119,6,0.06) !important;
+}
+tr.user-row-pending:hover {
+  background: rgba(217,119,6,0.11) !important;
+}
+tr.user-row-rejected {
+  background: rgba(220,38,38,0.04) !important;
+  opacity: 0.8;
+}
+
+/* ── Avatar mini en tabla de usuarios ───────────────────────────── */
+.user-avatar-mini {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--teal-light, #D5EDED);
+  color: var(--teal, #2A8A8A);
+  font-size: 0.72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ── Header de usuarios con acciones ───────────────────────────── */
+.users-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Barra de estadísticas de usuarios ─────────────────────────── */
+.user-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.user-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--r-full, 9999px);
+  font-size: 0.72rem; font-weight: 600;
+  white-space: nowrap;
+}
+.chip-total    { background: var(--surface-raised, #f5f0e8); color: var(--text-secondary); }
+.chip-approved { background: var(--success-light, #dcfce7); color: var(--success, #16a34a); }
+.chip-pending  {
+  background: var(--warning-light, #fef3c7);
+  color: var(--warning, #d97706);
+  animation: chip-pulse 2s ease-in-out infinite;
+}
+.chip-rejected { background: var(--danger-light, #fee2e2); color: var(--danger, #dc2626); }
+
+@keyframes chip-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217,119,6,0.25); }
+  50%       { box-shadow: 0 0 0 4px rgba(217,119,6,0.10); }
+}
+
+/* ── Barra de filtros de usuarios ───────────────────────────────── */
+.users-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid var(--border, #E8DFD0);
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.users-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+.users-search-icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  width: 14px; height: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.users-search-wrap input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.845rem;
+  transition: border-color var(--t-fast);
+  box-sizing: border-box;
+}
+.users-search-wrap input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(42,138,138,0.12);
+}
+.users-filter-bar select {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.845rem;
+  cursor: pointer;
+  transition: border-color var(--t-fast);
+}
+.users-filter-bar select:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(42,138,138,0.12);
+}
+
+@media (max-width: 640px) {
+  .users-filter-bar { flex-direction: column; align-items: stretch; }
+  .users-search-wrap { min-width: 100%; }
+  .users-filter-bar select { width: 100%; }
+  .users-header-actions { flex-direction: column; align-items: flex-start; }
+}
