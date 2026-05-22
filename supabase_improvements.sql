@@ -262,11 +262,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_username_ci
 CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_email_ci
   ON usuarios(LOWER(email));
 
--- Índice parcial en auditoría: solo registros recientes (últimos 90 días)
--- Acelera el dashboard de auditoría sin afectar el histórico completo
-CREATE INDEX IF NOT EXISTS idx_auditoria_recent
-  ON auditoria(created_at DESC)
-  WHERE created_at > (NOW() - INTERVAL '90 days');
+-- Índice en auditoría por fecha descendente (acelerA el listado principal)
+-- Nota: no se puede usar NOW() en índices parciales (no es IMMUTABLE)
+CREATE INDEX IF NOT EXISTS idx_auditoria_date
+  ON auditoria(created_at DESC);
 
 -- Índice en auditoria por actor (para filtros de auditoría)
 CREATE INDEX IF NOT EXISTS idx_auditoria_actor_nombre

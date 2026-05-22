@@ -337,7 +337,7 @@ async function showDashboard() {
   document.getElementById('dashboardSection').classList.remove('hidden');
   document.querySelector('.site-footer').style.display = 'none';
   activatePanel('overview');
-  updateSidebarUser();
+  updateSidebarUser();        // incluye updateSidebarAvatar()
   applyRolePermissions();
   // Mostrar loading en stats mientras carga
   ['totalVoters','totalUsers','todayVoters','activeProvinces'].forEach(id => setEl(id, '…'));
@@ -432,10 +432,208 @@ function updateSidebarUser() {
   if (!p) return;
   const nameEl   = document.getElementById('sidebarUserName');
   const roleEl   = document.getElementById('sidebarUserRole');
+  if (nameEl) nameEl.textContent = p.nombre_completo || p.username || '—';
+  if (roleEl) roleEl.textContent = p.rol || '—';
+  updateSidebarAvatar();
+}
+
+/* Actualiza el avatar del sidebar (foto o inicial) */
+function updateSidebarAvatar() {
   const avatarEl = document.getElementById('sidebarAvatar');
-  if (nameEl)   nameEl.textContent   = p.nombre_completo || p.username || '—';
-  if (roleEl)   roleEl.textContent   = p.rol || '—';
-  if (avatarEl) avatarEl.textContent = (p.nombre_completo || p.username || '?').charAt(0).toUpperCase();
+  if (!avatarEl) return;
+  const saved = localStorage.getItem(`peravia_avatar_${APP.currentUser?.id}`);
+  if (saved) {
+    avatarEl.innerHTML = `<img src="${saved}" alt="Foto de perfil" />`;
+  } else {
+    const initial = (APP.currentProfile?.nombre_completo || APP.currentProfile?.username || '?').charAt(0).toUpperCase();
+    avatarEl.textContent = initial;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PANEL DE PERFIL — Abrir / Cerrar
+══════════════════════════════════════════════════════════ */
+function openProfileModal() {
+  const p = APP.currentProfile;
+  if (!p) return;
+
+  // Rellenar datos del héroe
+  const heroRole   = document.getElementById('profileHeroRole');
+  const heroEmail  = document.getElementById('profileHeroEmail');
+  const heroMunici = document.getElementById('profileHeroMunici');
+  if (heroRole)   heroRole.textContent   = p.rol || '—';
+  if (heroEmail)  heroEmail.textContent  = p.email || '—';
+  if (heroMunici) heroMunici.textContent = p.provincia ? `📍 ${p.provincia}` : '';
+
+  // Rellenar formulario
+  const nameInput  = document.getElementById('profileModalName');
+  const phoneInput = document.getElementById('profileModalPhone');
+  const usernameEl = document.getElementById('profileModalUsername');
+  if (nameInput)  nameInput.value     = p.nombre_completo || '';
+  if (phoneInput) phoneInput.value    = p.telefono || '';
+  if (usernameEl) usernameEl.textContent = p.username || '—';
+
+  // Limpiar campos de contraseña
+  ['profileCurrentPwd','profileNewPwd','profileConfirmPwd'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Mostrar foto o iniciales en el modal
+  const img      = document.getElementById('profileAvatarImg');
+  const initials = document.getElementById('profileAvatarInitials');
+  const saved    = localStorage.getItem(`peravia_avatar_${APP.currentUser?.id}`);
+  if (saved && img && initials) {
+    img.src = saved;
+    img.classList.remove('hidden');
+    initials.style.display = 'none';
+  } else if (img && initials) {
+    img.classList.add('hidden');
+    img.src = '';
+    initials.style.display = 'flex';
+    initials.textContent = (p.nombre_completo || '?').charAt(0).toUpperCase();
+  }
+
+  // Limpiar mensaje previo
+  const msg = document.getElementById('profileMessage');
+  if (msg) { msg.className = 'status-message'; msg.textContent = ''; }
+
+  showModal('profileModal');
+}
+
+/* ── Subida de foto de perfil ─────────────────────────────────── */
+function handlePhotoUpload(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showStatusMsg('profileMessage', 'error', 'Seleccione una imagen válida (JPG, PNG, WEBP).');
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    showStatusMsg('profileMessage', 'error', 'La imagen no puede superar 2 MB.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;
+    localStorage.setItem(`peravia_avatar_${APP.currentUser?.id}`, dataUrl);
+
+    // Actualizar preview en el modal
+    const img      = document.getElementById('profileAvatarImg');
+    const initials = document.getElementById('profileAvatarInitials');
+    if (img && initials) {
+      img.src = dataUrl;
+      img.classList.remove('hidden');
+      initials.style.display = 'none';
+    }
+
+    // Actualizar sidebar
+    updateSidebarAvatar();
+    showStatusMsg('profileMessage', 'success', '✓ Foto actualizada.');
+    showNotif('success', 'Foto de perfil actualizada', '');
+  };
+  reader.onerror = () => showStatusMsg('profileMessage', 'error', 'Error al leer la imagen.');
+  reader.readAsDataURL(file);
+
+  // Reset input para permitir subir la misma imagen de nuevo
+  e.target.value = '';
+}
+
+/* ── Eliminar foto ────────────────────────────────────────────── */
+function removeProfilePhoto() {
+  localStorage.removeItem(`peravia_avatar_${APP.currentUser?.id}`);
+
+  const img      = document.getElementById('profileAvatarImg');
+  const initials = document.getElementById('profileAvatarInitials');
+  if (img && initials) {
+    img.classList.add('hidden');
+    img.src = '';
+    initials.style.display = 'flex';
+    initials.textContent = (APP.currentProfile?.nombre_completo || '?').charAt(0).toUpperCase();
+  }
+  updateSidebarAvatar();
+  showStatusMsg('profileMessage', 'info', 'Foto de perfil eliminada.');
+}
+
+/* ── Guardar cambios del perfil ───────────────────────────────── */
+async function handleProfileUpdate(e) {
+  e.preventDefault();
+
+  const name       = document.getElementById('profileModalName')?.value.trim();
+  const phone      = document.getElementById('profileModalPhone')?.value.trim();
+  const currentPwd = document.getElementById('profileCurrentPwd')?.value;
+  const newPwd     = document.getElementById('profileNewPwd')?.value;
+  const confirmPwd = document.getElementById('profileConfirmPwd')?.value;
+
+  if (!name) return showStatusMsg('profileMessage', 'error', 'El nombre no puede estar vacío.');
+
+  // Validar contraseña si se intenta cambiar
+  const changingPwd = newPwd || confirmPwd || currentPwd;
+  if (changingPwd) {
+    if (!currentPwd) return showStatusMsg('profileMessage', 'error', 'Ingrese su contraseña actual para cambiarla.');
+    if (!newPwd)     return showStatusMsg('profileMessage', 'error', 'Ingrese la nueva contraseña.');
+    if (newPwd !== confirmPwd) return showStatusMsg('profileMessage', 'error', 'Las contraseñas nuevas no coinciden.');
+    if (newPwd.length < 6)    return showStatusMsg('profileMessage', 'error', 'La nueva contraseña debe tener al menos 6 caracteres.');
+  }
+
+  const saveBtn = document.getElementById('profileSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span class="spinner"></span> Guardando…'; }
+
+  try {
+    let changed = false;
+
+    // Actualizar datos del perfil en la BD
+    if (name !== APP.currentProfile?.nombre_completo || phone !== (APP.currentProfile?.telefono || '')) {
+      const { error } = await withTimeout(
+        getSupabase().from('usuarios').update({ nombre_completo: name, telefono: phone }).eq('auth_user_id', APP.currentUser.id),
+        10000, 'actualizar perfil'
+      );
+      if (error) throw error;
+      APP.currentProfile = { ...APP.currentProfile, nombre_completo: name, telefono: phone };
+      updateSidebarUser();
+      changed = true;
+    }
+
+    // Cambiar contraseña
+    if (changingPwd) {
+      // Verificar contraseña actual re-autenticando
+      const { error: loginErr } = await withTimeout(
+        getSupabase().auth.signInWithPassword({ email: APP.currentProfile.email, password: currentPwd }),
+        10000, 'verificar contraseña'
+      );
+      if (loginErr) throw new Error('Contraseña actual incorrecta.');
+
+      const { error: pwdErr } = await withTimeout(
+        getSupabase().auth.updateUser({ password: newPwd }),
+        10000, 'cambiar contraseña'
+      );
+      if (pwdErr) throw pwdErr;
+
+      // Limpiar campos
+      ['profileCurrentPwd','profileNewPwd','profileConfirmPwd'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      changed = true;
+    }
+
+    if (changed) {
+      showStatusMsg('profileMessage', 'success', '✓ Perfil actualizado correctamente.');
+      showNotif('success', 'Perfil actualizado', APP.currentProfile.nombre_completo);
+      await logAudit('PROFILE_UPDATE', APP.currentUser?.id, 'Perfil actualizado por el usuario');
+    } else {
+      showStatusMsg('profileMessage', 'info', 'No hubo cambios que guardar.');
+    }
+
+  } catch (err) {
+    showStatusMsg('profileMessage', 'error', err.message || 'Error al actualizar el perfil.');
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar cambios`;
+    }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1896,13 +2094,37 @@ function bindEvents() {
   // Modal Conóceme
   document.getElementById('conocemeBtn')?.addEventListener('click', () => showModal('conocemeModal'));
   document.getElementById('closeConocemeBtn')?.addEventListener('click', () => closeModal('conocemeModal'));
+
+  // ── Modal Mi Perfil ────────────────────────────────────────────
+  // Abrir al hacer clic en el cuadro de usuario en la barra lateral
+  const sidebarUserBox = document.getElementById('sidebarUserBox');
+  if (sidebarUserBox) {
+    sidebarUserBox.addEventListener('click', openProfileModal);
+    sidebarUserBox.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProfileModal(); }
+    });
+  }
+
+  // Cerrar modal perfil
+  document.getElementById('closeProfileModalBtn')?.addEventListener('click', () => closeModal('profileModal'));
+
+  // Subida de foto
+  document.getElementById('profilePhotoInput')?.addEventListener('change', handlePhotoUpload);
+
+  // Botón quitar foto
+  document.getElementById('removePhotoBtn')?.addEventListener('click', removeProfilePhoto);
+
+  // Guardar cambios del perfil
+  document.getElementById('profileForm')?.addEventListener('submit', handleProfileUpdate);
 }
 
 /* ══════════════════════════════════════════════════════════
    EXPONER FUNCIONES GLOBALES (usadas en onclick del HTML)
 ══════════════════════════════════════════════════════════ */
-window.editVoter        = editVoter;
-window.deleteVoter      = deleteVoter;
-window.openEditUser     = openEditUser;
-window.toggleUserStatus = toggleUserStatus;
-window.deleteUser       = deleteUser;
+window.editVoter          = editVoter;
+window.deleteVoter        = deleteVoter;
+window.openEditUser       = openEditUser;
+window.toggleUserStatus   = toggleUserStatus;
+window.deleteUser         = deleteUser;
+window.removeProfilePhoto = removeProfilePhoto;
+window.openProfileModal   = openProfileModal;

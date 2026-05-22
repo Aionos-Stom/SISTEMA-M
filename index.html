@@ -247,7 +247,7 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="sidebar-user" id="sidebarUserBox">
+      <div class="sidebar-user" id="sidebarUserBox" role="button" tabindex="0" title="Mi perfil">
         <div class="sidebar-avatar" id="sidebarAvatar">—</div>
         <div class="sidebar-user-info">
           <strong id="sidebarUserName">Usuario</strong>
@@ -1041,6 +1041,85 @@
       <span>Brand Book por <strong>Tetrix grupo creativo</strong></span>
     </div>
 
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL: MI PERFIL
+═════════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+  <div class="modal-card profile-modal-card">
+
+    <!-- Hero del perfil -->
+    <div class="profile-modal-hero">
+      <div class="profile-avatar-wrap" id="profileAvatarWrap">
+        <img id="profileAvatarImg" src="" alt="Foto de perfil" class="hidden" />
+        <div class="profile-avatar-initials" id="profileAvatarInitials">?</div>
+        <label class="profile-avatar-upload-btn" for="profilePhotoInput" title="Cambiar foto de perfil">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </label>
+        <input type="file" id="profilePhotoInput" accept="image/jpeg,image/png,image/webp" class="hidden" aria-label="Subir foto de perfil" />
+      </div>
+      <div class="profile-hero-info">
+        <h3 id="profileModalTitle">Mi Perfil</h3>
+        <span class="status-badge status-approved" id="profileHeroRole">—</span>
+        <p class="profile-hero-email" id="profileHeroEmail">—</p>
+        <p class="profile-hero-munici" id="profileHeroMunici">—</p>
+      </div>
+      <button type="button" class="modal-close-btn" id="closeProfileModalBtn" aria-label="Cerrar perfil">×</button>
+    </div>
+
+    <!-- Formulario -->
+    <form id="profileForm" novalidate class="profile-form">
+
+      <div class="profile-section-label">Información personal</div>
+      <div class="grid-2">
+        <div class="input-group">
+          <label for="profileModalName">Nombre completo</label>
+          <input type="text" id="profileModalName" placeholder="Tu nombre completo" required autocomplete="name" />
+        </div>
+        <div class="input-group">
+          <label>Usuario</label>
+          <div class="profile-readonly-field" id="profileModalUsername">—</div>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="profileModalPhone">Teléfono</label>
+        <input type="text" id="profileModalPhone" placeholder="809-000-0000" inputmode="tel" autocomplete="tel" />
+      </div>
+
+      <div class="profile-divider-row">
+        <span>Cambiar contraseña</span>
+      </div>
+
+      <div class="input-group">
+        <label for="profileCurrentPwd">Contraseña actual</label>
+        <input type="password" id="profileCurrentPwd" placeholder="Ingrese su contraseña actual" autocomplete="current-password" />
+      </div>
+      <div class="grid-2">
+        <div class="input-group">
+          <label for="profileNewPwd">Nueva contraseña</label>
+          <input type="password" id="profileNewPwd" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+        </div>
+        <div class="input-group">
+          <label for="profileConfirmPwd">Confirmar nueva contraseña</label>
+          <input type="password" id="profileConfirmPwd" placeholder="Repita la contraseña" autocomplete="new-password" />
+        </div>
+      </div>
+
+      <div class="profile-form-actions">
+        <button type="button" class="clear-btn profile-remove-photo-btn" id="removePhotoBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.66-.9l.82-1.2A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3"/></svg>
+          Quitar foto
+        </button>
+        <button type="submit" class="primary-btn" id="profileSaveBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar cambios
+        </button>
+      </div>
+      <div class="status-message" id="profileMessage" role="alert" aria-live="polite"></div>
+
+    </form>
   </div>
 </div>
 
