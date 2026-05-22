@@ -62,6 +62,40 @@ const createMockSupabase = () => ({
 // Helper para acceder a Supabase
 const getSupabase = () => window.supabaseClient;
 
+/* ── Timeout wrapper — evita que llamadas lentas queden colgadas ─ */
+async function withTimeout(promise, ms = 12000, label = '') {
+  let timer;
+  const race = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(
+      new Error('Tiempo de espera agotado' + (label ? `: ${label}` : ''))
+    ), ms);
+  });
+  try { return await Promise.race([promise, race]); }
+  finally { clearTimeout(timer); }
+}
+
+/* ── Overlay de carga inicial (mientras se verifica la sesión) ── */
+function showLoadingOverlay(visible) {
+  let el = document.getElementById('globalLoadingOverlay');
+  if (visible) {
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'globalLoadingOverlay';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      el.innerHTML =
+        '<div class="glo-inner">' +
+          '<div class="glo-ring"></div>' +
+          '<p class="glo-text">Verificando sesión…</p>' +
+        '</div>';
+      document.body.appendChild(el);
+    }
+    el.style.display = 'flex';
+  } else if (el) {
+    el.style.display = 'none';
+  }
+}
+
 // Municipios de Peravia
 const MUNICIPIOS_PERAVIA = [
   'Baní',
@@ -95,17 +129,19 @@ const ROLE_LEVEL = {
 
 /* ── ESTADO GLOBAL ─────────────────────────────────────── */
 const APP = {
-  currentUser:   null,
-  currentProfile: null,
-  allVoters:     [],
-  allUsers:      [],
-  filteredVoters: [],
-  auditLogs:     [],
-  auditPage:     1,
+  currentUser:     null,
+  currentProfile:  null,
+  allVoters:       [],
+  allUsers:        [],
+  filteredVoters:  [],
+  auditLogs:       [],
+  auditPage:       1,
   AUDIT_PAGE_SIZE: 20,
-  chart:         null,
-  searchDebounce: null,
-  _loginInProgress: false, // Flag para evitar race conditions en auth
+  votersPage:      1,       // Paginación de tabla de registros
+  VOTERS_PAGE_SIZE: 50,     // Registros por página en consulta
+  chart:           null,
+  searchDebounce:  null,
+  _loginInProgress: false,  // Flag para evitar race conditions en auth
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -179,12 +215,15 @@ async function init() {
   // Manejar URL de recuperación de contraseña
   const hash = window.location.hash;
   if (hash.includes('type=recovery')) {
+    showAuth();
     showModal('resetPasswordModal');
+    return; // No verificar sesión en flujo de recovery
   }
 
   // Listener de sesión — solo para cambios DESPUÉS del init
-  if (getSupabase().auth && getSupabase().auth.onAuthStateChange) {
-    getSupabase().auth.onAuthStateChange(async (event, session) => {
+  const sb = getSupabase();
+  if (sb?.auth?.onAuthStateChange) {
+    sb.auth.onAuthStateChange(async (event, session) => {
       // TOKEN_REFRESHED: solo actualizar user, nada más
       if (event === 'TOKEN_REFRESHED' && session) {
         APP.currentUser = session.user;
@@ -213,25 +252,34 @@ async function init() {
     });
   }
 
-  // Verificar sesión existente al cargar la página
+  // ── Verificar sesión existente con timeout ────────────────────
   try {
-    const { data: sessionData } = await getSupabase().auth.getSession();
+    showLoadingOverlay(true);
+    const { data: sessionData } = await withTimeout(
+      getSupabase().auth.getSession(),
+      10000,
+      'verificar sesión'
+    );
     const session = sessionData?.session;
-    if (session) {
+    if (session?.user) {
       APP.currentUser = session.user;
-      await loadUserProfile();
+      await withTimeout(loadUserProfile(), 8000, 'cargar perfil');
+
       if (APP.currentProfile?.estado === 'aprobado') {
         await showDashboard();
-      } else {
+        return;
+      } else if (APP.currentProfile) {
+        // Perfil existe pero no está aprobado → cerrar sesión
         await getSupabase().auth.signOut();
-        showAuth();
       }
-    } else {
-      showAuth();
+      // Sin perfil o no aprobado → mostrar login
     }
-  } catch (err) {
-    console.warn('Error al verificar sesión:', err);
     showAuth();
+  } catch (err) {
+    console.warn('Error al verificar sesión:', err.message);
+    showAuth();
+  } finally {
+    showLoadingOverlay(false);
   }
 }
 
@@ -421,8 +469,10 @@ async function handleLogin(e) {
 
     let email = userInput;
     if (!userInput.includes('@')) {
-      const { data: foundEmail, error: findErr } = await getSupabase()
-        .rpc('get_email_from_username', { p_username: userInput });
+      const { data: foundEmail, error: findErr } = await withTimeout(
+        getSupabase().rpc('get_email_from_username', { p_username: userInput }),
+        10000, 'buscar usuario'
+      );
       if (findErr) throw findErr;
       if (!foundEmail) {
         showAuthMsg('error', 'Usuario o correo no encontrado.');
@@ -431,7 +481,10 @@ async function handleLogin(e) {
       email = foundEmail;
     }
 
-    const { data, error } = await getSupabase().auth.signInWithPassword({ email, password });
+    const { data, error } = await withTimeout(
+      getSupabase().auth.signInWithPassword({ email, password }),
+      15000, 'iniciar sesión'
+    );
     if (error) throw error;
     if (!data?.user?.id) throw new Error('No se pudo verificar la identidad del usuario.');
 
@@ -536,30 +589,59 @@ async function handleRegister(e) {
     }
     if (!authData?.user?.id) throw new Error('No se pudo crear la cuenta de autenticación.');
 
-    const { data: result, error: rpcErr } = await getSupabase()
-      .rpc('register_user_profile', {
-        p_auth_user_id:    authData.user.id,
-        p_nombre_completo: name,
-        p_username:        username,
-        p_email:           email,
-        p_telefono:        phone,
-        p_rol:             role,
-        p_provincia:       province,
-        p_region:          region,
-        p_municipio:       municipio,
-        p_distrito:        distrito,
-        p_zona:            zone,
-      });
-    if (rpcErr) throw new Error('Error al crear perfil: ' + rpcErr.message);
+    // Insertar perfil en la tabla usuarios directamente
+    // (primero intentar con RPC si existe, sino INSERT directo)
+    let profileInserted = false;
 
-    const estado = result?.estado || 'pendiente';
-    showAuthMsg('success', estado === 'aprobado'
-      ? '✓ Cuenta creada. Ya puede iniciar sesión.'
-      : '✓ Solicitud enviada. Espere la aprobación del administrador.');
-    document.getElementById('registerForm').reset();
-    if (estado === 'aprobado') {
-      setTimeout(() => document.getElementById('showLogin').click(), 2000);
+    // Intentar con RPC (si fue ejecutado supabase_improvements.sql)
+    try {
+      const { error: rpcErr } = await getSupabase()
+        .rpc('register_user_profile', {
+          p_auth_user_id:    authData.user.id,
+          p_nombre_completo: name,
+          p_username:        username,
+          p_email:           email,
+          p_telefono:        phone,
+          p_rol:             role,
+          p_provincia:       province,
+          p_region:          region,
+          p_municipio:       municipio,
+          p_distrito:        distrito,
+          p_zona:            zone,
+        });
+      if (!rpcErr) profileInserted = true;
+      else if (!rpcErr.message?.includes('does not exist') && !rpcErr.message?.includes('Could not find')) {
+        throw new Error(rpcErr.message);
+      }
+    } catch (rpcEx) {
+      if (!rpcEx.message?.includes('does not exist') && !rpcEx.message?.includes('Could not find')) {
+        throw rpcEx;
+      }
     }
+
+    // Fallback: INSERT directo si el RPC no existe
+    if (!profileInserted) {
+      const { error: insertErr } = await getSupabase()
+        .from('usuarios')
+        .insert({
+          auth_user_id:    authData.user.id,
+          nombre_completo: name,
+          username,
+          email,
+          telefono:  phone,
+          rol:       role,
+          provincia: province,
+          region,
+          municipio,
+          distrito,
+          zona:      zone,
+          estado:    'pendiente',
+        });
+      if (insertErr) throw new Error('Error al crear perfil: ' + insertErr.message);
+    }
+
+    showAuthMsg('success', '✓ Solicitud enviada. Espere la aprobación del administrador.');
+    document.getElementById('registerForm').reset();
   } catch (err) {
     console.error('Error en registro:', err);
     showAuthMsg('error', getAuthError(err.message || 'Error desconocido al registrar'));
@@ -647,20 +729,21 @@ async function loadVoters() {
     }
 
     const p = APP.currentProfile;
+    // Sin perfil cargado, no cargar nada
+    if (!p) return;
+
+    // Límite razonable por consulta (500 en lugar de 2000)
     let query = getSupabase()
       .from('registros')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(2000);
+      .limit(500);
 
     // Admin → sin filtro (ve todo)
     // Coordinador → su provincia
     // Supervisor / Registrador / Observador → sus propios registros
-    if (!p) {
-      // Sin perfil cargado, no cargar nada
-      return;
-    } else if (isAdmin()) {
-      // sin filtro
+    if (isAdmin()) {
+      // sin filtro — admin ve todo
     } else if (isCoordOrAbove()) {
       query = query.eq('provincia', p.provincia);
     } else {
@@ -668,7 +751,7 @@ async function loadVoters() {
       query = query.eq('registrado_por_id', APP.currentUser.id);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await withTimeout(query, 15000, 'cargar registros');
 
     if (error) {
       // Error de RLS — mostrar aviso claro
@@ -680,11 +763,16 @@ async function loadVoters() {
 
     APP.allVoters      = data || [];
     APP.filteredVoters = [...APP.allVoters];
+    APP.votersPage     = 1; // Resetear página al recargar
     renderVotersTable(APP.filteredVoters);
     updateFilterBadge(APP.filteredVoters.length);
     populateDynamicFilters(APP.allVoters);
 
-    console.info(`[Peravia] loadVoters → ${APP.allVoters.length} registros para ${p.nombre_completo} (${p.rol}) | uid=${APP.currentUser?.id}`);
+    const total = count ?? APP.allVoters.length;
+    if (total > 500) {
+      showNotif('info', `Mostrando 500 de ${total} registros`, 'Use filtros para refinar la búsqueda.');
+    }
+    console.info(`[Peravia] loadVoters → ${APP.allVoters.length} registros para ${p.nombre_completo} (${p.rol})`);
   } catch (err) {
     console.error('Error cargando registros:', err);
     APP.allVoters     = [];
@@ -732,10 +820,14 @@ async function loadAuditLogs() {
       return;
     }
 
-    const { data, error } = await getSupabase()
-      .from('auditoria')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await withTimeout(
+      getSupabase()
+        .from('auditoria')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500),    // Máximo 500 entradas de auditoría por consulta
+      15000, 'cargar auditoría'
+    );
     if (error) throw error;
     APP.auditLogs = data || [];
     renderAuditTable(APP.auditLogs);
@@ -974,12 +1066,20 @@ async function deleteUser(userId, userName, authUserId) {
 function renderVotersTable(voters) {
   const tbody = document.getElementById('votersTableBody');
   if (!tbody) return;
-  if (!voters.length) {
+
+  // ── Paginación client-side ─────────────────────────────────────
+  const page  = APP.votersPage;
+  const size  = APP.VOTERS_PAGE_SIZE;
+  const total = voters.length;
+  const slice = voters.slice((page - 1) * size, page * size);
+
+  if (!slice.length) {
     tbody.innerHTML = `<tr class="empty-row"><td colspan="16">No hay registros para mostrar.</td></tr>`;
+    renderVotersPagination(total);
     return;
   }
   const canEdit = isCoordOrAbove() || isAdmin();
-  tbody.innerHTML = voters.map(v => `
+  tbody.innerHTML = slice.map(v => `
     <tr>
       <td><strong>${esc(v.nombre)}</strong></td>
       <td>${esc(v.cedula)}</td>
@@ -1008,6 +1108,76 @@ function renderVotersTable(voters) {
       </td>
     </tr>
   `).join('');
+
+  renderVotersPagination(total);
+}
+
+/* ── Paginación de la tabla de registros ────────────────────────── */
+function renderVotersPagination(total) {
+  // Crear/obtener el contenedor de paginación
+  let container = document.getElementById('votersPagination');
+  if (!container) {
+    const tableCard = document.querySelector('#panelConsulta .table-card, #panelConsulta .card');
+    if (!tableCard) return;
+    container = document.createElement('div');
+    container.id = 'votersPagination';
+    container.className = 'audit-pagination voters-pagination';
+    tableCard.appendChild(container);
+  }
+
+  const size  = APP.VOTERS_PAGE_SIZE;
+  const pages = Math.ceil(total / size);
+
+  container.innerHTML = '';
+
+  if (pages <= 1) return;
+
+  // Info de página actual
+  const info = document.createElement('span');
+  info.className = 'page-info';
+  const from = (APP.votersPage - 1) * size + 1;
+  const to   = Math.min(APP.votersPage * size, total);
+  info.textContent = `${from}–${to} de ${total}`;
+  container.appendChild(info);
+
+  // Botón Anterior
+  const prev = document.createElement('button');
+  prev.className = 'page-btn';
+  prev.textContent = '‹ Anterior';
+  prev.disabled = APP.votersPage === 1;
+  prev.addEventListener('click', () => {
+    if (APP.votersPage > 1) { APP.votersPage--; renderVotersTable(APP.filteredVoters); container.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  });
+  container.appendChild(prev);
+
+  // Botones de página (con ellipsis)
+  for (let i = 1; i <= pages; i++) {
+    const gap = Math.abs(i - APP.votersPage);
+    if (pages > 8 && gap > 2 && i !== 1 && i !== pages) {
+      if (i === 2 || i === pages - 1) {
+        const dot = document.createElement('span');
+        dot.textContent = '…';
+        dot.style.cssText = 'padding: 0 4px; color: var(--text-muted); line-height: 32px;';
+        container.appendChild(dot);
+      }
+      continue;
+    }
+    const btn = document.createElement('button');
+    btn.className = `page-btn${i === APP.votersPage ? ' active' : ''}`;
+    btn.textContent = i;
+    btn.addEventListener('click', () => { APP.votersPage = i; renderVotersTable(APP.filteredVoters); container.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+    container.appendChild(btn);
+  }
+
+  // Botón Siguiente
+  const next = document.createElement('button');
+  next.className = 'page-btn';
+  next.textContent = 'Siguiente ›';
+  next.disabled = APP.votersPage === pages;
+  next.addEventListener('click', () => {
+    if (APP.votersPage < pages) { APP.votersPage++; renderVotersTable(APP.filteredVoters); container.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  });
+  container.appendChild(next);
 }
 
 function renderUsersTable(users) {
@@ -1252,6 +1422,7 @@ function applyFilters() {
       (!registrar || v.registrado_por_nombre === registrar)
     );
   });
+  APP.votersPage = 1; // Volver a primera página al filtrar
   renderVotersTable(APP.filteredVoters);
   updateFilterBadge(APP.filteredVoters.length);
 }
@@ -1260,6 +1431,7 @@ function clearFilters() {
   ['searchInput','filterProvince','filterMunicipio','filterSector','filterMesa','filterRole','filterRegistrar']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   APP.filteredVoters = [...APP.allVoters];
+  APP.votersPage = 1; // Volver a primera página al limpiar
   renderVotersTable(APP.filteredVoters);
   updateFilterBadge(APP.filteredVoters.length);
 }
