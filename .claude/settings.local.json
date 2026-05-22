@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git add *)",
       "Bash(git commit -m 'fix: login colgado, registro roto, paginación y optimización BD *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit -m 'feat: panel de perfil, foto de usuario, fix modal Conoceme y responsive movil *)",
+      "Bash(git commit -m 'feat: auto-logout 30min inactividad + fix sesion persistente al reiniciar *)"
     ]
   }
 }

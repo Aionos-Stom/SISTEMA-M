@@ -1715,6 +1715,86 @@ tbody tr:last-child td { border-bottom: none; }
   .profile-form .grid-2 { grid-template-columns: 1fr; }
 }
 
+/* ══════════════════════════════════════════════════════
+   AUTO-LOGOUT — Banner de advertencia de inactividad
+══════════════════════════════════════════════════════ */
+#inactivityWarning {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 350ms ease, transform 350ms cubic-bezier(0.34,1.56,0.64,1);
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+#inactivityWarning.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: all;
+}
+
+.ina-inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--surface-raised);
+  border: 1.5px solid var(--warning);
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 0 0 4px rgba(217,119,6,0.10);
+  backdrop-filter: blur(8px);
+}
+.ina-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: var(--warning-light);
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--warning);
+}
+.ina-icon svg { width: 18px; height: 18px; }
+
+.ina-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ina-text strong {
+  font-size: 0.875rem; font-weight: 700;
+  color: var(--text); line-height: 1.2;
+}
+.ina-text span {
+  font-size: 0.80rem; color: var(--text-secondary); line-height: 1.4;
+}
+.ina-text span strong {
+  color: var(--warning); font-size: inherit;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.ina-btn {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  background: var(--warning);
+  color: #fff;
+  border-radius: var(--r-sm);
+  font-size: 0.845rem; font-weight: 700;
+  border: none; cursor: pointer;
+  transition: background var(--t-fast), transform var(--t-fast);
+  white-space: nowrap;
+}
+.ina-btn:hover { background: #b45309; transform: translateY(-1px); }
+.ina-btn:active { transform: none; }
+
+@media (max-width: 600px) {
+  #inactivityWarning { bottom: 16px; }
+  .ina-inner { gap: 10px; padding: 12px 14px; }
+  .ina-text span { display: none; } /* Solo título + botón en muy pequeño */
+}
+
 /* ── OVERLAY DE CARGA INICIAL DEL SISTEMA ────────────────────── */
 #globalLoadingOverlay {
   position: fixed;

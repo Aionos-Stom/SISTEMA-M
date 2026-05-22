@@ -145,6 +145,123 @@ const APP = {
 };
 
 /* ══════════════════════════════════════════════════════════
+   AUTO-LOGOUT POR INACTIVIDAD — 30 minutos
+   • Detecta actividad del usuario (mouse, teclado, táctil, scroll)
+   • Avisa a los 28 minutos con un banner
+   • Cierra la sesión automáticamente a los 30 minutos
+══════════════════════════════════════════════════════════ */
+const INACTIVITY_LOGOUT_MS = 30 * 60 * 1000;   // 30 minutos → cierre
+const INACTIVITY_WARN_MS   = 28 * 60 * 1000;   // 28 minutos → aviso
+const INACTIVITY_CHECK_MS  = 20 * 1000;         // revisar cada 20 seg
+
+let _lastActivity    = Date.now();
+let _inactivityTimer = null;
+let _warnShown       = false;
+let _activityThrottle = 0;
+
+/** Reinicia el contador de actividad */
+function resetActivity() {
+  const now = Date.now();
+  if (now - _activityThrottle < 4000) return; // throttle: máximo 1 reset cada 4 seg
+  _activityThrottle = now;
+  _lastActivity = now;
+  if (_warnShown) { _warnShown = false; hideInactivityWarning(); }
+}
+
+/** Inicia la vigilancia de inactividad (llamar al entrar al dashboard) */
+function startInactivityWatch() {
+  _lastActivity = Date.now();
+  _warnShown    = false;
+
+  const events = ['mousemove','mousedown','keydown','touchstart','scroll','click','pointerdown'];
+  events.forEach(ev => document.addEventListener(ev, resetActivity, { passive: true }));
+
+  if (_inactivityTimer) clearInterval(_inactivityTimer);
+  _inactivityTimer = setInterval(_checkInactivity, INACTIVITY_CHECK_MS);
+  console.info('[Peravia] Vigilancia de inactividad activa — cierre en 30 min');
+}
+
+/** Detiene la vigilancia (llamar al cerrar sesión) */
+function stopInactivityWatch() {
+  if (_inactivityTimer) { clearInterval(_inactivityTimer); _inactivityTimer = null; }
+  hideInactivityWarning();
+  _warnShown = false;
+}
+
+/** Comprueba inactividad y actúa según el tiempo transcurrido */
+function _checkInactivity() {
+  if (!APP.currentUser) return;
+  const idle = Date.now() - _lastActivity;
+
+  if (idle >= INACTIVITY_LOGOUT_MS) {
+    // ── Cerrar sesión ──────────────────────────────────────────
+    hideInactivityWarning();
+    showNotif('warning', 'Sesión cerrada por inactividad',
+      'Pasaron 30 minutos sin actividad.');
+    handleLogout();
+    return;
+  }
+
+  if (idle >= INACTIVITY_WARN_MS && !_warnShown) {
+    // ── Mostrar aviso ──────────────────────────────────────────
+    _warnShown = true;
+    showInactivityWarning();
+  }
+}
+
+/** Muestra el banner de advertencia antes del cierre */
+function showInactivityWarning() {
+  let el = document.getElementById('inactivityWarning');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'inactivityWarning';
+    el.setAttribute('role', 'alert');
+    el.setAttribute('aria-live', 'assertive');
+    el.innerHTML = `
+      <div class="ina-inner">
+        <div class="ina-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="13"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div class="ina-text">
+          <strong>¿Sigues ahí?</strong>
+          <span>La sesión se cerrará en <strong id="inaCountdown">2:00</strong> por inactividad.</span>
+        </div>
+        <button class="ina-btn" id="inactivityStayBtn" type="button">Continuar</button>
+      </div>`;
+    document.body.appendChild(el);
+    document.getElementById('inactivityStayBtn')?.addEventListener('click', () => {
+      resetActivity();
+      _lastActivity = Date.now(); // forzar reset aunque el throttle esté activo
+    });
+  }
+  el.classList.add('visible');
+
+  // Cuenta regresiva de 2 minutos
+  const countEl = document.getElementById('inaCountdown');
+  let secsLeft = Math.round((INACTIVITY_LOGOUT_MS - (Date.now() - _lastActivity)) / 1000);
+  if (secsLeft < 0) secsLeft = 0;
+
+  const countInt = setInterval(() => {
+    if (!_warnShown) { clearInterval(countInt); return; }
+    secsLeft = Math.round((INACTIVITY_LOGOUT_MS - (Date.now() - _lastActivity)) / 1000);
+    if (secsLeft <= 0) { clearInterval(countInt); return; }
+    const m = Math.floor(secsLeft / 60);
+    const s = secsLeft % 60;
+    if (countEl) countEl.textContent = `${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+/** Oculta el banner de advertencia */
+function hideInactivityWarning() {
+  const el = document.getElementById('inactivityWarning');
+  if (el) el.classList.remove('visible');
+}
+
+/* ══════════════════════════════════════════════════════════
    INICIALIZACIÓN
 ══════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
@@ -263,16 +380,29 @@ async function init() {
     const session = sessionData?.session;
     if (session?.user) {
       APP.currentUser = session.user;
-      await withTimeout(loadUserProfile(), 8000, 'cargar perfil');
+
+      // ── Cargar perfil con su propio try-catch ─────────────────
+      // Si falla (timeout/red lenta) NO cerrar sesión de Supabase.
+      // El usuario sigue autenticado; mostrar login para que reintente.
+      try {
+        await withTimeout(loadUserProfile(), 8000, 'cargar perfil');
+      } catch (profileErr) {
+        console.warn('Perfil no cargó (red lenta?):', profileErr.message);
+        // Reintentar una vez más antes de rendirse
+        try {
+          await withTimeout(loadUserProfile(), 6000, 'reintento perfil');
+        } catch (_) { /* no hacer nada — mostrar auth más abajo */ }
+      }
 
       if (APP.currentProfile?.estado === 'aprobado') {
         await showDashboard();
         return;
-      } else if (APP.currentProfile) {
-        // Perfil existe pero no está aprobado → cerrar sesión
+      } else if (APP.currentProfile && APP.currentProfile.estado !== 'aprobado') {
+        // Perfil existe pero no está aprobado → cerrar sesión correctamente
         await getSupabase().auth.signOut();
       }
-      // Sin perfil o no aprobado → mostrar login
+      // Perfil null (no cargó) → mostrar login SIN borrar sesión de Supabase
+      // para que el propio signInWithPassword reutilice el token existente.
     }
     showAuth();
   } catch (err) {
@@ -339,6 +469,7 @@ async function showDashboard() {
   activatePanel('overview');
   updateSidebarUser();        // incluye updateSidebarAvatar()
   applyRolePermissions();
+  startInactivityWatch();     // ← Vigilancia de 30 min de inactividad
   // Mostrar loading en stats mientras carga
   ['totalVoters','totalUsers','todayVoters','activeProvinces'].forEach(id => setEl(id, '…'));
   try {
@@ -894,6 +1025,7 @@ async function handleResetPassword(e) {
    LOGOUT
 ══════════════════════════════════════════════════════════ */
 async function handleLogout() {
+  stopInactivityWatch();      // ← Detener vigilancia de inactividad
   try {
     await logAudit('SESSION_LOGOUT', APP.currentUser?.id, 'Cierre de sesión');
   } catch (_) {}
