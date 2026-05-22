@@ -101,17 +101,18 @@ function showLoadingOverlay(visible, msg) {
   }
 }
 
-/* ── Detectar sesión en caché local (sin red) ─────────────────── */
-// Supabase guarda la sesión en localStorage con la storageKey configurada.
-// Solo verificamos que haya un access_token guardado — no hacemos red.
-function _hasStoredSession() {
+/* ── Despertar Supabase Free antes del login ────────────────────── */
+// Supabase Free pausa el proyecto tras inactividad (~1 semana).
+// Al mostrar el formulario de login disparamos una llamada barata
+// para que el servidor esté despierto cuando el usuario pulse "Entrar".
+function _warmUpSupabase() {
+  if (DEMO_MODE) return;
   try {
-    const raw = localStorage.getItem('peravia-auth-token');
-    if (!raw) return false;
-    const s = JSON.parse(raw);
-    // Verificar que hay token válido (acceso o sesión anidada)
-    return !!(s?.access_token || s?.session?.access_token);
-  } catch (_) { return false; }
+    getSupabase()
+      .rpc('check_username_exists', { p_username: '__ping__' })
+      .then(() => console.log('[SISTEMA M] Servidor listo'))
+      .catch(() => {});
+  } catch (_) {}
 }
 
 // Municipios de Peravia
@@ -345,7 +346,7 @@ async function init() {
   populateSelects();
   bindEvents();
 
-  // Manejar URL de recuperación de contraseña
+  // Recuperación de contraseña via URL hash
   const hash = window.location.hash;
   if (hash.includes('type=recovery')) {
     showAuth();
@@ -353,71 +354,28 @@ async function init() {
     return;
   }
 
-  // Listener de sesión — solo para cambios DESPUÉS del init
+  // Listener mínimo — solo TOKEN_REFRESHED y SIGNED_OUT
+  // NO manejamos SIGNED_IN para evitar auto-login desde sesión guardada
   const sb = getSupabase();
   if (sb?.auth?.onAuthStateChange) {
-    sb.auth.onAuthStateChange(async (event, session) => {
-      // TOKEN_REFRESHED: solo actualizar user
+    sb.auth.onAuthStateChange((event, session) => {
       if (event === 'TOKEN_REFRESHED' && session) {
         APP.currentUser = session.user;
-        return;
       }
-      // SIGNED_OUT: limpiar y mostrar login
       if (event === 'SIGNED_OUT') {
         APP.currentUser      = null;
         APP.currentProfile   = null;
         APP._loginInProgress = false;
         showAuth();
-        return;
-      }
-      // SIGNED_IN desde otra pestaña — solo si no estamos en flujo manual
-      if (event === 'SIGNED_IN' && session) {
-        if (APP.currentProfile || APP._loginInProgress) return;
-        APP.currentUser = session.user;
-        await loadUserProfile();
-        if (APP.currentProfile?.estado === 'aprobado') {
-          showDashboard();
-        } else {
-          await getSupabase().auth.signOut();
-        }
       }
     });
   }
 
-  // ── Sin sesión guardada → login inmediato, sin espera de red ──
-  if (!_hasStoredSession()) {
-    showAuth();
-    return;
-  }
+  // Siempre mostrar login — sin restauración de sesión
+  showAuth();
 
-  // ── Hay sesión guardada → intentar restaurar (máx 6 segundos) ──
-  showLoadingOverlay(true, 'Cargando…');
-  let restored = false;
-  try {
-    const { data } = await withTimeout(
-      getSupabase().auth.getSession(),
-      6000,
-      'sesión'
-    );
-    if (data?.session?.user) {
-      APP.currentUser = data.session.user;
-      try {
-        await withTimeout(loadUserProfile(), 5000, 'perfil');
-      } catch (_) {}
-      if (APP.currentProfile?.estado === 'aprobado') {
-        restored = true;
-        showDashboard();
-      } else if (APP.currentProfile) {
-        // Perfil existe pero no aprobado → cerrar sesión
-        await getSupabase().auth.signOut();
-      }
-    }
-  } catch (err) {
-    console.warn('[SISTEMA M] Sesión no restaurada:', err.message);
-  } finally {
-    showLoadingOverlay(false);
-    if (!restored) showAuth();
-  }
+  // Despertar el servidor en background mientras el usuario escribe
+  _warmUpSupabase();
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -806,12 +764,17 @@ async function handleLogin(e) {
       return;
     }
 
+    // Avisar si tarda más de 5s (Supabase Free despertando)
+    let _loginSlowTimer = setTimeout(() => {
+      showAuthMsg('info', '⏳ El servidor está iniciando, espere…');
+    }, 5000);
+
     let email = userInput;
     if (!userInput.includes('@')) {
-      showAuthMsg('info', 'Buscando usuario…');
+      showAuthMsg('info', 'Conectando al servidor…');
       const { data: foundEmail, error: findErr } = await withTimeout(
         getSupabase().rpc('get_email_from_username', { p_username: userInput }),
-        15000, 'buscar usuario'
+        30000, 'buscar usuario'
       );
       if (findErr) throw findErr;
       if (!foundEmail) {
@@ -824,15 +787,18 @@ async function handleLogin(e) {
     showAuthMsg('info', 'Verificando credenciales…');
     const { data, error } = await withTimeout(
       getSupabase().auth.signInWithPassword({ email, password }),
-      15000, 'iniciar sesión'
+      30000, 'iniciar sesión'
     );
     if (error) throw error;
     if (!data?.user?.id) throw new Error('No se pudo verificar la identidad del usuario.');
 
+    clearTimeout(_loginSlowTimer);
+    _loginSlowTimer = null;
+
     showAuthMsg('info', 'Cargando perfil…');
     const { data: profile, error: profileErr } = await withTimeout(
       getSupabase().from('usuarios').select('*').eq('auth_user_id', data.user.id).maybeSingle(),
-      10000, 'perfil de usuario'
+      12000, 'perfil de usuario'
     );
     if (profileErr) throw profileErr;
 
@@ -855,22 +821,25 @@ async function handleLogin(e) {
     APP.currentUser    = data.user;
     APP.currentProfile = profile;
     logAudit('SESSION_LOGIN', data.user.id, `Inicio de sesión — ${profile.nombre_completo} (${profile.rol})`).catch(() => {});
-    showAuthMsg('success', 'Accediendo al sistema...');
+    showAuthMsg('success', '✓ Accediendo al sistema...');
     showDashboard();
 
   } catch (err) {
     console.error('Error de login:', err);
     showAuthMsg('error', getAuthError(err.message));
     try {
-      await getSupabase().from('auditoria').insert({
+      getSupabase().from('auditoria').insert({
         actor_id: null,
         actor_nombre: document.getElementById('loginUser')?.value?.trim() || 'Desconocido',
         actor_rol: '—', accion: 'SESSION_LOGIN_FAILED', objetivo: null,
         detalles: `Intento fallido: ${err.message}`,
         created_at: new Date().toISOString(),
-      });
+      }).catch(() => {});
     } catch (_) {}
   } finally {
+    if (typeof _loginSlowTimer !== 'undefined' && _loginSlowTimer) {
+      clearTimeout(_loginSlowTimer);
+    }
     APP._loginInProgress = false;
     setSubmitLoading('loginForm', false);
   }
@@ -2223,6 +2192,9 @@ function getAuthError(msg) {
     'username already taken': 'Este nombre de usuario ya está registrado.',
     'supabase is not defined': 'Error de configuración: Supabase no está inicializado. Verifique las credenciales.',
     'cannot read properties of null': 'Error de conexión: No se pudo conectar con el servidor.',
+    'tiempo de espera agotado': 'El servidor tardó en responder. Inténtelo de nuevo.',
+    'fetch failed': 'Sin conexión. Verifique su internet e inténtelo de nuevo.',
+    'networkerror': 'Sin conexión. Verifique su internet e inténtelo de nuevo.',
   };
   
   for (const [key, value] of Object.entries(errorMap)) {
