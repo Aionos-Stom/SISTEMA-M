@@ -1170,264 +1170,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .mg-footer-copy { font-size: 0.7rem; color: var(--text-muted); }
 
-/* ══════════════════════════════════════════════════════
-   17. MODAL CONÓCEME — MOREILA GUERRERO SUAZO
-══════════════════════════════════════════════════════ */
-
-/* Contener todos los SVGs del modal para que no exploten */
-.conoceme-modal-card svg {
-  max-width: 100%;
-  max-height: 100%;
-}
-/* SVGs sueltos en pilares, íconos edu y cert */
-.conoceme-pilar > svg,
-.conoceme-edu-icon svg,
-.cert-icon svg {
-  width: 20px !important; height: 20px !important;
-  min-width: 20px; min-height: 20px;
-  max-width: 20px !important; max-height: 20px !important;
-  display: block; flex-shrink: 0;
-}
-
-.conoceme-modal-card {
-  max-width: 720px;
-  padding: 0;
-  overflow: hidden;
-  border-radius: 24px;
-}
-
-/* Hero */
-.conoceme-hero {
-  background: linear-gradient(145deg, #155555 0%, #2d838b 55%, #3BA5A5 100%);
-  padding: 36px 32px 28px;
-  display: flex; align-items: center; gap: 24px;
-  position: relative;
-}
-.conoceme-close {
-  position: absolute; top: 16px; right: 16px;
-  color: rgba(255,255,255,0.7);
-  background: rgba(255,255,255,0.12);
-  border-radius: 8px;
-  width: 32px; height: 32px;
-  font-size: 1.4rem; line-height: 1;
-}
-.conoceme-close:hover { background: rgba(255,255,255,0.22); color: #fff; }
-
-.conoceme-photo-wrap { flex-shrink: 0; }
-.conoceme-photo-placeholder {
-  width: 90px; height: 90px; border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  border: 3px solid rgba(255,255,255,0.35);
-  display: flex; align-items: center; justify-content: center;
-  position: relative;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-}
-.conoceme-photo-initials {
-  font-family: var(--font-display);
-  font-size: 1.8rem; font-weight: 800;
-  color: #fff; letter-spacing: -0.04em;
-}
-.conoceme-photo-ring {
-  position: absolute; inset: -6px;
-  border-radius: 50%;
-  border: 2px dashed rgba(247,86,48,0.60);
-  animation: spin 12s linear infinite;
-}
-
-.conoceme-hero-text { flex: 1; min-width: 0; }
-.conoceme-brand-logo {
-  display: flex; flex-direction: column; line-height: 1.1;
-  margin-bottom: 8px;
-}
-.conoceme-logo-moreila {
-  font-family: var(--font-display);
-  font-size: 2rem; font-weight: 800;
-  color: #fff; letter-spacing: -0.03em;
-}
-.conoceme-logo-apellido {
-  font-family: var(--font-display);
-  font-size: 1.5rem; font-weight: 400;
-  font-style: italic;
-  color: rgba(255,255,255,0.85);
-  letter-spacing: -0.01em;
-}
-.conoceme-logo-apellido em { font-style: normal; color: #fcb8a4; }
-.conoceme-titulo {
-  font-size: 0.78rem; font-weight: 600;
-  color: rgba(255,255,255,0.80);
-  letter-spacing: 0.04em; text-transform: uppercase;
-  margin-bottom: 4px;
-}
-.conoceme-subtitulo {
-  font-size: 0.82rem; color: rgba(255,255,255,0.60);
-  font-style: italic; line-height: 1.4;
-}
-
-/* Pilares */
-.conoceme-pilares {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  border-bottom: 1px solid var(--border);
-}
-.conoceme-pilar {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 6px; padding: 14px 10px;
-  text-align: center;
-  border-right: 1px solid var(--border);
-  transition: background 200ms ease;
-}
-.conoceme-pilar:last-child { border-right: none; }
-.pilar-ico {
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem; line-height: 1; flex-shrink: 0;
-  margin-bottom: 2px;
-}
-.pilar-ico-teal   { background: rgba(45,131,139,0.12); }
-.pilar-ico-orange { background: rgba(247,86,48,0.12); }
-.pilar-ico-peach  { background: rgba(252,184,164,0.20); }
-.pilar-ico-beige  { background: rgba(245,236,213,0.30); }
-.conoceme-pilar strong { font-size: 0.78rem; font-weight: 700; color: var(--text); }
-.conoceme-pilar span  { font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; }
-.pilar-teal:hover   { background: rgba(45,131,139,0.06); }
-.pilar-orange:hover { background: rgba(247,86,48,0.06); }
-.pilar-peach:hover  { background: rgba(252,184,164,0.10); }
-.pilar-beige:hover  { background: rgba(245,236,213,0.20); }
-.conoceme-edu-icon {
-  width: 36px; height: 36px; flex-shrink: 0;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem; line-height: 1;
-}
-.cert-icon {
-  width: 32px; height: 32px; flex-shrink: 0;
-  background: rgba(247,86,48,0.10);
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem; line-height: 1;
-}
-
-/* Info scrollable */
-.conoceme-info {
-  padding: 22px 28px;
-  display: flex; flex-direction: column; gap: 22px;
-  max-height: 52vh; overflow-y: auto;
-}
-
-/* Secciones */
-.conoceme-seccion { display: flex; flex-direction: column; gap: 10px; }
-.conoceme-seccion-header {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 2px;
-}
-.conoceme-seccion-header h4 {
-  font-family: var(--font-display);
-  font-size: 0.95rem; font-weight: 700;
-  color: var(--text); letter-spacing: -0.01em;
-}
-.conoceme-seccion-dot {
-  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-}
-.dot-teal  { background: #2d838b; }
-.dot-orange{ background: #f75630; }
-.dot-peach { background: #fcb8a4; }
-.conoceme-seccion p {
-  font-size: 0.845rem; color: var(--text-secondary); line-height: 1.65;
-}
-.conoceme-seccion-sub {
-  font-size: 0.78rem; color: var(--text-muted);
-  font-style: italic; margin-bottom: 4px;
-}
-
-/* Educación */
-.conoceme-edu-list { display: flex; flex-direction: column; gap: 8px; }
-.conoceme-edu-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 14px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  transition: border-color 200ms ease;
-}
-.conoceme-edu-item:hover { border-color: #2d838b; }
-.conoceme-edu-icon {
-  width: 36px; height: 36px; flex-shrink: 0;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem; line-height: 1;
-}
-.edu-en-curso { background: rgba(45,131,139,0.12); color: #2d838b; }
-.edu-completo { background: rgba(46,139,87,0.10); color: var(--success); }
-.conoceme-edu-body { flex: 1; min-width: 0; }
-.conoceme-edu-body strong {
-  display: block; font-size: 0.845rem; font-weight: 700;
-  color: var(--text); line-height: 1.3; margin-bottom: 2px;
-}
-.edu-inst {
-  display: block; font-size: 0.77rem;
-  color: var(--text-muted); margin-bottom: 6px;
-}
-.edu-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.edu-badge {
-  display: inline-flex; align-items: center;
-  padding: 2px 8px; border-radius: 9999px;
-  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.badge-curso   { background: rgba(45,131,139,0.12); color: #2d838b; }
-.badge-completo{ background: rgba(46,139,87,0.12); color: var(--success); }
-.edu-fecha { font-size: 0.72rem; color: var(--text-muted); }
-
-/* Certificaciones */
-.conoceme-cert-list { display: flex; flex-direction: column; gap: 8px; }
-.conoceme-cert-item {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 10px 14px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.cert-icon {
-  width: 32px; height: 32px; flex-shrink: 0;
-  background: rgba(247,86,48,0.10);
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  color: #f75630;
-}
-.cert-icon svg { width: 15px !important; height: 15px !important; max-width: 15px !important; max-height: 15px !important; }
-.conoceme-cert-item strong {
-  display: block; font-size: 0.82rem; font-weight: 700;
-  color: var(--text); margin-bottom: 2px;
-}
-.conoceme-cert-item span {
-  font-size: 0.75rem; color: var(--text-muted);
-}
-
-/* Firma */
-.conoceme-footer-sig {
-  padding: 14px 28px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-subtle);
-  display: flex; align-items: center;
-  justify-content: space-between; gap: 12px;
-  flex-wrap: wrap;
-}
-.sig-brand {
-  display: flex; align-items: center; gap: 10px;
-}
-.sig-mg {
-  width: 30px; height: 30px;
-  background: linear-gradient(135deg, #2d838b, #1D6B6B);
-  color: #fff; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display); font-size: 0.7rem; font-weight: 800;
-}
-.sig-brand span:last-child {
-  font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);
-}
-.conoceme-footer-sig > span {
-  font-size: 0.72rem; color: var(--text-muted);
-}
-.conoceme-footer-sig strong { color: var(--text-secondary); }
+/* ── 17. MODAL CONÓCEME eliminado — redirige a moreilaguerrero.com ── */
 
 @media (max-width: 600px) {
   .mg-footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
@@ -1596,123 +1339,34 @@ tbody tr:last-child td { border-bottom: none; }
   display: block;
 }
 
-/* ══════════════════════════════════════════════════════
-   19. FIX — MODAL CONÓCEME (scroll interno correcto)
-══════════════════════════════════════════════════════ */
-.conoceme-modal-card {
-  max-width: 720px;
-  padding: 0;
-  overflow: hidden;
-  border-radius: 24px;
-  display: flex;
-  flex-direction: column;
-  max-height: min(92vh, 780px); /* limitar altura sin romper layout */
-}
-
-/* Sólo la sección de información hace scroll */
-.conoceme-info {
-  flex: 1;
-  min-height: 0;          /* clave para que overflow funcione en flex */
-  overflow-y: auto;
-  padding: 20px 28px 24px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-.conoceme-info::-webkit-scrollbar { width: 5px; }
-.conoceme-info::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
-
-/* Pilares no hacen scroll — son parte del encabezado */
-.conoceme-pilares {
-  flex-shrink: 0;
-}
-
-/* Firma fija al fondo */
-.conoceme-footer-sig {
-  flex-shrink: 0;
-}
-
-/* Fix mobile para el héroe de Conóceme */
+/* ── 19. eliminado con modal conoceme — reglas de perfil mobile movidas a sección 22 ── */
 @media (max-width: 600px) {
-  .conoceme-modal-card { max-height: 96vh; border-radius: 16px; }
-  .conoceme-hero {
-    flex-direction: column; text-align: center;
-    padding: 28px 20px 20px; gap: 12px;
-  }
-  .conoceme-close { top: 10px; right: 10px; }
-  .conoceme-photo-placeholder { width: 72px; height: 72px; }
-  .conoceme-logo-moreila { font-size: 1.5rem; }
-  .conoceme-logo-apellido { font-size: 1.1rem; }
-  .conoceme-pilares { grid-template-columns: repeat(2, 1fr); }
-  .conoceme-info { padding: 16px 18px 20px; }
-  .conoceme-footer-sig { flex-direction: column; gap: 8px; padding: 12px 18px; }
   .profile-modal-hero { padding: 20px 18px; gap: 14px; }
   .profile-form { padding: 16px 18px; }
 }
 
 /* ══════════════════════════════════════════════════════
-   20. FIX — RESPONSIVE MÓVIL MEJORADO
+   20. RESPONSIVE — Reglas base (sección 22 tiene los breakpoints completos)
 ══════════════════════════════════════════════════════ */
-
-/* Topbar compacto en móvil */
+.compact-grid { grid-template-columns: 1fr 1fr !important; }
+@media (max-width: 480px) {
+  .compact-grid { grid-template-columns: 1fr !important; }
+  .profile-form .grid-2 { grid-template-columns: 1fr; }
+}
+.profile-modal-card {
+  max-height: min(92vh, 720px);
+}
 @media (max-width: 768px) {
-  .topbar { height: 56px; gap: 8px; padding: 0 12px; }
-  .topbar-actions { gap: 6px; }
-
-  /* Ocultar texto de botones secundarios, solo ícono */
-  .topbar-actions .secondary-btn,
-  .topbar-actions .danger-btn {
-    padding: 7px 10px;
-    min-width: 36px;
-  }
-  .topbar-actions .secondary-btn svg,
-  .topbar-actions .danger-btn svg { width: 16px; height: 16px; }
-
-  /* Sidebar user modal adaptado */
   .profile-modal-card { max-height: 96vh; border-radius: 16px; }
   .profile-avatar-wrap { width: 66px; height: 66px; }
   .profile-avatar-wrap img,
   .profile-avatar-initials { width: 66px; height: 66px; }
   .profile-avatar-initials { font-size: 1.6rem; }
-
-  /* Evitar overflow horizontal en tablas */
-  .table-wrap { -webkit-overflow-scrolling: touch; }
-
-  /* Stats en 2 columnas en móvil medio */
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-
-  /* Analytics apiladas */
-  .analytics-grid { grid-template-columns: 1fr; }
-
-  /* Formularios — mantener 2 cols en algunas grids pequeñas */
-  .compact-grid { grid-template-columns: 1fr 1fr !important; }
-
-  /* Modal base más compacto */
-  .modal-card { padding: 18px; border-radius: var(--r-lg); }
-  .modal-overlay { padding: 12px; align-items: flex-end; }
-  .modal-card:not(.conoceme-modal-card):not(.profile-modal-card) {
+  /* Eliminar referencia a modal conoceme que ya no existe */
+  .modal-card:not(.profile-modal-card) {
     border-radius: 20px 20px 0 0;
     max-height: 92vh;
   }
-
-  /* Footer en móvil */
-  .mg-footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .mg-footer-actions { align-items: flex-start; }
-}
-
-@media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-
-  /* Texto de acciones oculto — solo íconos */
-  .topbar-actions .secondary-btn span { display: none; }
-  .topbar-actions .danger-btn    span { display: none; }
-
-  /* Botón exportar compacto */
-  .topbar-actions .secondary-btn { padding: 6px 8px; }
-  .topbar-actions .danger-btn    { padding: 6px 8px; }
-
-  /* Grids de formularios en 1 col */
-  .compact-grid { grid-template-columns: 1fr !important; }
-  .profile-form .grid-2 { grid-template-columns: 1fr; }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1868,6 +1522,225 @@ tbody tr:last-child td { border-bottom: none; }
 [data-theme="dark"] .glo-ring {
   border-color: rgba(255,255,255,0.1);
   border-top-color: var(--teal-mid, #3BA5A5);
+}
+
+/* ══════════════════════════════════════════════════════
+   22. QA — CORRECCIONES MOBILE COMPLETAS
+   Todos los arreglos de UX para pantallas pequeñas
+══════════════════════════════════════════════════════ */
+
+/* ── Tablas: scroll táctil correcto ─────────────────────────────── */
+.table-wrap {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: none;
+}
+/* Indicador visual de scroll horizontal */
+.table-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 32px;
+  pointer-events: none;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+/* ── Footer — link en lugar de botón ────────────────────────────── */
+.mg-conoceme-btn {
+  text-decoration: none;
+}
+
+/* ── Auth form — mejoras generales ─────────────────────────────── */
+.auth-main { overflow-y: auto; }
+.auth-main-inner {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ── Modales — base mejorada ────────────────────────────────────── */
+.modal-overlay {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── BREAKPOINT 768px ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Sidebar toggle visible */
+  .sidebar-toggle { display: flex; }
+
+  /* App content padding */
+  .app-content { padding: 14px; }
+
+  /* Cards menos padding */
+  .card { padding: 16px 16px; }
+  .card-header { margin-bottom: 12px; }
+
+  /* Table card */
+  .table-card { padding: 14px 0; }
+  .table-card .card-header { padding: 0 16px; }
+
+  /* Topbar: ocultar buscador pero dejar espacio */
+  .topbar-search { display: none; }
+
+  /* Stats grid 2 columnas */
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+
+  /* Grids de formulario en 1 col */
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+
+  /* Modal actions apiladas */
+  .modal-actions { flex-wrap: wrap; gap: 8px; }
+
+  /* Panel heading compacto */
+  .panel-heading { margin-bottom: 2px; }
+  .panel-heading-text h3 { font-size: 1.1rem; }
+
+  /* Analytics siempre una columna en tablet */
+  .analytics-grid { grid-template-columns: 1fr !important; }
+
+  /* Ranking card — más compacto */
+  .ranking-item { padding: 8px 12px; }
+
+  /* Usuarios: header actions */
+  .users-header-actions { flex-wrap: wrap; gap: 8px; width: 100%; }
+  .user-stats-bar { order: 2; }
+
+  /* Paginación */
+  .voters-pagination { padding: 10px 0 2px; }
+  .page-info { font-size: 0.72rem; }
+  .page-btn { padding: 5px 9px; font-size: 0.78rem; }
+}
+
+/* ── BREAKPOINT 640px ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Auth — quitar padding extra */
+  .auth-main-inner { padding: 24px 18px; }
+  .auth-main-header h2 { font-size: 1.3rem; }
+  .auth-main-header p  { font-size: 0.82rem; }
+
+  /* Tabs de auth */
+  .tabs { gap: 4px; }
+  .tab { padding: 8px 14px; font-size: 0.82rem; }
+
+  /* Stat cards más compactos */
+  .stat-card { padding: 14px 16px; gap: 6px; }
+  .stat-card h3 { font-size: 1.8rem; }
+  .stat-card-icon { width: 36px; height: 36px; }
+
+  /* Chart: altura fija más pequeña */
+  .chart-canvas-wrap { height: 200px !important; overflow: hidden; }
+  .chart-canvas-wrap canvas { max-height: 200px; }
+
+  /* Modales desde abajo en tablet/phone */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-card {
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 92vh;
+    width: 100%;
+    max-width: 100% !important;
+    overflow-y: auto;
+  }
+  /* Excepción: perfil modal sigue siendo centrado con max-height */
+  .profile-modal-card {
+    max-width: 100% !important;
+    width: 100%;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 96vh !important;
+  }
+
+  /* Acciones de modal full-width */
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions button { width: 100%; }
+
+  /* Form card sin overflow en mobile */
+  .form-card { overflow: hidden; }
+
+  /* Paginación centrada en mobile */
+  .voters-pagination, .audit-pagination {
+    justify-content: center;
+    gap: 4px;
+  }
+  .page-info { width: 100%; text-align: center; order: -1; margin-right: 0; }
+}
+
+/* ── BREAKPOINT 480px ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* App content muy compacto */
+  .app-content { padding: 10px; }
+  .card { padding: 14px 12px; }
+
+  /* Stats: 2 columnas siempre (overrides cualquier regla anterior) */
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Topbar: muy compacto */
+  .topbar { gap: 6px; padding: 0 10px; height: 54px; }
+  .topbar-left { gap: 6px; }
+  .panel-tag { display: none; }
+  .topbar-title-group h2 { font-size: 0.8rem; }
+
+  /* Ocultar texto en botones de topbar */
+  .topbar-actions .secondary-btn span,
+  .topbar-actions .danger-btn span { display: none; }
+  .topbar-actions .secondary-btn,
+  .topbar-actions .danger-btn { padding: 6px 9px; min-width: 34px; }
+
+  /* Panel headings */
+  .panel-heading-text h3 { font-size: 1rem; }
+  .panel-heading-text p { font-size: 0.78rem; }
+
+  /* Cards de la tabla sin padding lateral */
+  .table-card { padding: 10px 0; }
+  .table-card .card-header { padding: 0 12px; }
+  .table-card .table-wrap { margin-top: 4px; }
+
+  /* Header de usuarios — columna */
+  .card-header.row-between { flex-direction: column; gap: 10px; }
+  .users-header-actions { flex-direction: column; align-items: flex-start; width: 100%; }
+  .user-stats-bar { flex-wrap: wrap; }
+
+  /* Filtro de usuarios en columna */
+  .users-filter-bar { flex-direction: column; gap: 8px; }
+  .users-search-wrap { min-width: 100%; }
+  .users-filter-bar select { width: 100%; }
+
+  /* Formulario perfil */
+  .profile-modal-hero { flex-direction: column; align-items: center; text-align: center; }
+  .profile-hero-email { white-space: normal; }
+
+  /* Footer minimal en mobile */
+  .mg-footer-inner { flex-direction: column; align-items: flex-start; gap: 12px; padding: 0 16px; }
+  .mg-footer-actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .mg-footer-copy { font-size: 0.65rem; }
+  .mg-footer-symbols { gap: 6px; }
+  .mg-symbol { width: 30px; height: 30px; }
+
+  /* Botón Conóceme → link en footer */
+  .mg-conoceme-btn { padding: 7px 14px; font-size: 0.78rem; }
+}
+
+/* ── BREAKPOINT 380px (teléfonos muy pequeños) ────────────────── */
+@media (max-width: 380px) {
+  .topbar { height: 50px; }
+  .sidebar-toggle { width: 32px; height: 32px; }
+  .topbar-title-group h2 { font-size: 0.75rem; }
+  /* Ocultar toggle de tema en pantallas mínimas */
+  .theme-toggle { display: none; }
+
+  .stat-card { padding: 12px 10px; }
+  .stat-card h3 { font-size: 1.5rem; }
+  .stat-card-icon { display: none; }
+
+  .auth-main-header h2 { font-size: 1.15rem; }
+  .auth-main-inner { padding: 18px 14px; }
+}
+
+/* ── Safe area para notch / home bar ────────────────────────────── */
+@supports (padding: max(0px)) {
+  .topbar { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  .sidebar { padding-bottom: env(safe-area-inset-bottom); }
+  .modal-card { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 }
 
 /* ══════════════════════════════════════════════════════

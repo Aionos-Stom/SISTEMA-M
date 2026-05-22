@@ -2407,9 +2407,7 @@ function bindEvents() {
     }
   });
 
-  // Modal Conóceme
-  document.getElementById('conocemeBtn')?.addEventListener('click', () => showModal('conocemeModal'));
-  document.getElementById('closeConocemeBtn')?.addEventListener('click', () => closeModal('conocemeModal'));
+  // El botón Conóceme ahora es un <a> que abre moreilaguerrero.com — no necesita JS
 
   // ── Modal Mi Perfil ────────────────────────────────────────────
   // Abrir al hacer clic en el cuadro de usuario en la barra lateral
