@@ -747,6 +747,8 @@ async function handleLogin(e) {
   if (!password)  return showAuthMsg('error', 'Ingrese su contraseña.');
 
   setSubmitLoading('loginForm', true);
+  // Declarar fuera del try para que finally pueda limpiar
+  let _loginSlowTimer = null;
   try {
     APP._loginInProgress = true;
 
@@ -765,7 +767,7 @@ async function handleLogin(e) {
     }
 
     // Avisar si tarda más de 5s (Supabase Free despertando)
-    let _loginSlowTimer = setTimeout(() => {
+    _loginSlowTimer = setTimeout(() => {
       showAuthMsg('info', '⏳ El servidor está iniciando, espere…');
     }, 5000);
 
@@ -837,9 +839,7 @@ async function handleLogin(e) {
       }).catch(() => {});
     } catch (_) {}
   } finally {
-    if (typeof _loginSlowTimer !== 'undefined' && _loginSlowTimer) {
-      clearTimeout(_loginSlowTimer);
-    }
+    if (_loginSlowTimer) clearTimeout(_loginSlowTimer);
     APP._loginInProgress = false;
     setSubmitLoading('loginForm', false);
   }
