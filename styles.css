@@ -1832,6 +1832,16 @@ tbody tr:last-child td { border-bottom: none; }
   color: var(--text-muted, #9C8878);
   letter-spacing: 0.02em;
 }
+.glo-subtext {
+  font-family: var(--font-body, 'DM Sans', sans-serif);
+  font-size: 0.75rem;
+  color: var(--text-muted, #9C8878);
+  opacity: 0.75;
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.4;
+  min-height: 1em;
+}
 
 /* ── PAGINACIÓN DE TABLA DE REGISTROS ─────────────────────────── */
 .voters-pagination {

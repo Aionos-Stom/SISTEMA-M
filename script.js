@@ -75,7 +75,7 @@ async function withTimeout(promise, ms = 12000, label = '') {
 }
 
 /* ── Overlay de carga inicial (mientras se verifica la sesión) ── */
-function showLoadingOverlay(visible) {
+function showLoadingOverlay(visible, msg) {
   let el = document.getElementById('globalLoadingOverlay');
   if (visible) {
     if (!el) {
@@ -87,13 +87,40 @@ function showLoadingOverlay(visible) {
         '<div class="glo-inner">' +
           '<div class="glo-ring"></div>' +
           '<p class="glo-text">Verificando sesión…</p>' +
+          '<p class="glo-subtext" id="gloSubtext"></p>' +
         '</div>';
       document.body.appendChild(el);
+    }
+    if (msg) {
+      const t = el.querySelector('.glo-text');
+      if (t) t.textContent = msg;
     }
     el.style.display = 'flex';
   } else if (el) {
     el.style.display = 'none';
   }
+}
+
+/* ── Detectar sesión en caché local (sin red) ─────────────────── */
+// Supabase guarda la sesión en localStorage con la storageKey configurada.
+// Leerla localmente nos dice si el usuario YA tenía una sesión activa
+// sin necesidad de esperar respuesta del servidor.
+function _hasStoredSession() {
+  try {
+    const raw = localStorage.getItem('peravia-auth-token');
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    // Considerar válida si el token no expiró hace más de 7 días
+    if (!s?.expires_at) return false;
+    return s.expires_at > (Math.floor(Date.now() / 1000) - 7 * 24 * 3600);
+  } catch (_) { return false; }
+}
+
+/* ── Mostrar mensaje de servidor lento en el overlay ─────────── */
+let _slowTimer = null;
+function _showSlowServerMsg() {
+  const sub = document.getElementById('gloSubtext');
+  if (sub) sub.textContent = 'El servidor está despertando, espere un momento…';
 }
 
 // Municipios de Peravia
@@ -369,46 +396,66 @@ async function init() {
     });
   }
 
-  // ── Verificar sesión existente con timeout ────────────────────
+  // ── Verificar sesión existente ────────────────────────────────
+  // Supabase gratis pausa el proyecto tras inactividad.
+  // Al despertar puede tardar hasta 30 seg → timeout generoso.
+  const cachedSession = _hasStoredSession();
+  const loadingMsg    = cachedSession ? 'Restaurando sesión…' : 'Verificando acceso…';
+
   try {
-    showLoadingOverlay(true);
+    showLoadingOverlay(true, loadingMsg);
+
+    // Avisar al usuario si tarda más de 6 segundos (servidor pausado)
+    _slowTimer = setTimeout(_showSlowServerMsg, 6000);
+
     const { data: sessionData } = await withTimeout(
       getSupabase().auth.getSession(),
-      10000,
+      30000,            // 30 seg — margen para que Supabase despierte
       'verificar sesión'
     );
+
+    clearTimeout(_slowTimer);
+    _slowTimer = null;
+
     const session = sessionData?.session;
     if (session?.user) {
       APP.currentUser = session.user;
 
-      // ── Cargar perfil con su propio try-catch ─────────────────
-      // Si falla (timeout/red lenta) NO cerrar sesión de Supabase.
-      // El usuario sigue autenticado; mostrar login para que reintente.
+      // Cargar perfil — con su propio try-catch para no perder sesión si falla
       try {
-        await withTimeout(loadUserProfile(), 8000, 'cargar perfil');
+        await withTimeout(loadUserProfile(), 10000, 'cargar perfil');
       } catch (profileErr) {
-        console.warn('Perfil no cargó (red lenta?):', profileErr.message);
-        // Reintentar una vez más antes de rendirse
-        try {
-          await withTimeout(loadUserProfile(), 6000, 'reintento perfil');
-        } catch (_) { /* no hacer nada — mostrar auth más abajo */ }
+        console.warn('Perfil no cargó (red lenta):', profileErr.message);
+        // Reintento único antes de rendirse
+        try { await withTimeout(loadUserProfile(), 8000, 'reintento perfil'); }
+        catch (_) { /* seguir — mostrar auth sin cerrar sesión */ }
       }
 
       if (APP.currentProfile?.estado === 'aprobado') {
         await showDashboard();
         return;
       } else if (APP.currentProfile && APP.currentProfile.estado !== 'aprobado') {
-        // Perfil existe pero no está aprobado → cerrar sesión correctamente
+        // Perfil existe pero no está aprobado → cerrar sesión limpiamente
         await getSupabase().auth.signOut();
       }
-      // Perfil null (no cargó) → mostrar login SIN borrar sesión de Supabase
-      // para que el propio signInWithPassword reutilice el token existente.
+      // Perfil null (falló la carga) → mostrar login SIN cerrar sesión Supabase
     }
     showAuth();
   } catch (err) {
-    console.warn('Error al verificar sesión:', err.message);
-    showAuth();
+    clearTimeout(_slowTimer);
+    _slowTimer = null;
+    const isTimeout = err.message?.includes('Tiempo de espera');
+    if (isTimeout) {
+      // Supabase tardó demasiado → mostrar login con aviso claro
+      showAuth();
+      showAuthMsg('error',
+        '⚠️ El servidor tardó en responder (puede estar iniciando). Intente iniciar sesión nuevamente.');
+    } else {
+      console.warn('Error al verificar sesión:', err.message);
+      showAuth();
+    }
   } finally {
+    if (_slowTimer) { clearTimeout(_slowTimer); _slowTimer = null; }
     showLoadingOverlay(false);
   }
 }
@@ -798,9 +845,11 @@ async function handleLogin(e) {
 
     let email = userInput;
     if (!userInput.includes('@')) {
+      // Supabase puede estar despertando → dar hasta 30 seg
+      showAuthMsg('info', 'Buscando usuario…');
       const { data: foundEmail, error: findErr } = await withTimeout(
         getSupabase().rpc('get_email_from_username', { p_username: userInput }),
-        10000, 'buscar usuario'
+        30000, 'buscar usuario'
       );
       if (findErr) throw findErr;
       if (!foundEmail) {
@@ -810,9 +859,10 @@ async function handleLogin(e) {
       email = foundEmail;
     }
 
+    showAuthMsg('info', 'Verificando credenciales…');
     const { data, error } = await withTimeout(
       getSupabase().auth.signInWithPassword({ email, password }),
-      15000, 'iniciar sesión'
+      30000, 'iniciar sesión'    // 30 seg para proyectos pausados
     );
     if (error) throw error;
     if (!data?.user?.id) throw new Error('No se pudo verificar la identidad del usuario.');
