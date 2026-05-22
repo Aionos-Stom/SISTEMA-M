@@ -6,24 +6,9 @@
 'use strict';
 
 /* ── CONFIGURACIÓN ─────────────────────────────────────── */
-// ┌─────────────────────────────────────────────────────────┐
-// │  SUPABASE — coloca aquí tus credenciales reales         │
-// │                                                         │
-// │  Dónde obtenerlas:                                      │
-// │  supabase.com → tu proyecto → Settings → API           │
-// │                                                         │
-// │  SUPABASE_URL  → "Project URL"                          │
-// │  SUPABASE_ANON → "anon / public" (bajo API Keys)        │
-// └─────────────────────────────────────────────────────────┘
-const SUPABASE_URL  = 'https://nmvqqbwfotvslwxkohrt.supabase.co';       // ← Project URL
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tdnFxYndmb3R2c2x3eGtvaHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MTc4NTksImV4cCI6MjA5Mjk5Mzg1OX0.lpvLNqaRy6XElWsxe_R09XecvFpWffdiye1uet0oxFU';  // ← pega aquí tu anon key
+const SUPABASE_URL  = 'https://nmvqqbwfotvslwxkohrt.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tdnFxYndmb3R2c2x3eGtvaHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MTc4NTksImV4cCI6MjA5Mjk5Mzg1OX0.lpvLNqaRy6XElWsxe_R09XecvFpWffdiye1uet0oxFU';
 
-// Cliente de Supabase (global - única fuente de verdad)
-if (!window.supabaseClient) {
-  window.supabaseClient = null;
-}
-
-// Flag para modo demo (cuando no hay credenciales válidas)
 let DEMO_MODE = false;
 
 // Mock de Supabase para desarrollo
@@ -59,7 +44,6 @@ const createMockSupabase = () => ({
   })
 });
 
-// Helper para acceder a Supabase
 const getSupabase = () => window.supabaseClient;
 
 /* ── Timeout wrapper — evita que llamadas lentas queden colgadas ─ */
@@ -72,33 +56,6 @@ async function withTimeout(promise, ms = 12000, label = '') {
   });
   try { return await Promise.race([promise, race]); }
   finally { clearTimeout(timer); }
-}
-
-/* ── Overlay de carga inicial (mientras se verifica la sesión) ── */
-function showLoadingOverlay(visible, msg) {
-  let el = document.getElementById('globalLoadingOverlay');
-  if (visible) {
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'globalLoadingOverlay';
-      el.setAttribute('role', 'status');
-      el.setAttribute('aria-live', 'polite');
-      el.innerHTML =
-        '<div class="glo-inner">' +
-          '<div class="glo-ring"></div>' +
-          '<p class="glo-text">Verificando sesión…</p>' +
-          '<p class="glo-subtext" id="gloSubtext"></p>' +
-        '</div>';
-      document.body.appendChild(el);
-    }
-    if (msg) {
-      const t = el.querySelector('.glo-text');
-      if (t) t.textContent = msg;
-    }
-    el.style.display = 'flex';
-  } else if (el) {
-    el.style.display = 'none';
-  }
 }
 
 /* ── Despertar Supabase Free antes del login ────────────────────── */
@@ -115,7 +72,6 @@ function _warmUpSupabase() {
   } catch (_) {}
 }
 
-// Municipios de Peravia
 const MUNICIPIOS_PERAVIA = [
   'Baní',
   'Nizao',
@@ -128,7 +84,6 @@ const MUNICIPIOS_PERAVIA = [
   'Pueblo Viejo'
 ];
 
-// Roles del sistema
 const ROLES = [
   { value: 'Administrador',    label: 'Administrador' },
   { value: 'Coordinador',      label: 'Coordinador municipal' },
@@ -137,7 +92,6 @@ const ROLES = [
   { value: 'Observador',       label: 'Observador' }
 ];
 
-// Jerarquía de roles (mayor = más permisos)
 const ROLE_LEVEL = {
   'Administrador': 5,
   'Coordinador':   4,
@@ -339,10 +293,7 @@ function waitForSupabase() {
 }
 
 async function init() {
-  // Aplicar tema guardado
   applyTheme(localStorage.getItem('peravia_theme') || 'light');
-
-  // Poblar selects y registrar eventos
   populateSelects();
   bindEvents();
 
@@ -354,8 +305,7 @@ async function init() {
     return;
   }
 
-  // Listener mínimo — solo TOKEN_REFRESHED y SIGNED_OUT
-  // NO manejamos SIGNED_IN para evitar auto-login desde sesión guardada
+  // Solo TOKEN_REFRESHED y SIGNED_OUT — NO SIGNED_IN (evita auto-login desde sesión guardada)
   const sb = getSupabase();
   if (sb?.auth?.onAuthStateChange) {
     sb.auth.onAuthStateChange((event, session) => {
@@ -371,10 +321,7 @@ async function init() {
     });
   }
 
-  // Siempre mostrar login — sin restauración de sesión
   showAuth();
-
-  // Despertar el servidor en background mientras el usuario escribe
   _warmUpSupabase();
 }
 
@@ -435,11 +382,9 @@ async function showDashboard() {
   updateSidebarUser();        // incluye updateSidebarAvatar()
   applyRolePermissions();
   startInactivityWatch();     // ← Vigilancia de 30 min de inactividad
-  // Mostrar loading en stats mientras carga
   ['totalVoters','totalUsers','todayVoters','activeProvinces'].forEach(id => setEl(id, '…'));
 
-  // ── Cargar datos en background (SIN bloquear el UI ni el flujo de login) ──
-  // Esto evita que el botón "Entrar" quede en "Procesando..." si la BD tarda.
+  // Cargar datos en background — no bloquea el UI ni el flujo de login
   Promise.all([loadVoters(), loadUsers()])
     .then(() => renderOverview())
     .catch(err => {
@@ -493,39 +438,6 @@ function applyRolePermissions() {
 /* ══════════════════════════════════════════════════════════
    PERFIL DE USUARIO
 ══════════════════════════════════════════════════════════ */
-async function loadUserProfile() {
-  if (!APP.currentUser) return;
-  
-  // En modo demo, usar perfil demo
-  if (DEMO_MODE) {
-    APP.currentProfile = {
-      auth_user_id: APP.currentUser.id,
-      nombre_completo: 'Usuario Demo',
-      username: APP.currentUser.email?.split('@')[0] || 'demo',
-      email: APP.currentUser.email,
-      rol: 'Administrador',
-      estado: 'aprobado',
-      provincia: 'Baní'
-    };
-    return;
-  }
-  
-  try {
-    const { data, error } = await getSupabase()
-      .from('usuarios')
-      .select('*')
-      .eq('auth_user_id', APP.currentUser.id)
-      .maybeSingle();
-    if (!error && data) {
-      APP.currentProfile = data;
-    } else if (error) {
-      console.warn('Error cargando perfil:', error.message);
-    }
-  } catch (err) {
-    console.warn('Error loading user profile:', err);
-  }
-}
-
 function updateSidebarUser() {
   const p = APP.currentProfile;
   if (!p) return;
@@ -747,11 +659,9 @@ async function handleLogin(e) {
   if (!password)  return showAuthMsg('error', 'Ingrese su contraseña.');
 
   setSubmitLoading('loginForm', true);
-  // Declarar fuera del try para que finally pueda limpiar
-  let _loginSlowTimer = null;
+  let _loginSlowTimer = null; // fuera del try para que finally pueda limpiar
   try {
     APP._loginInProgress = true;
-
     if (DEMO_MODE) {
       showAuthMsg('success', '✓ Acceso en modo demo - Bienvenido');
       APP.currentUser = { id: 'demo_user', email: userInput };
@@ -902,11 +812,8 @@ async function handleRegister(e) {
     }
     if (!authData?.user?.id) throw new Error('No se pudo crear la cuenta de autenticación.');
 
-    // Insertar perfil en la tabla usuarios directamente
-    // (primero intentar con RPC si existe, sino INSERT directo)
+    // Intentar insertar perfil via RPC; si no existe, INSERT directo
     let profileInserted = false;
-
-    // Intentar con RPC (si fue ejecutado supabase_improvements.sql)
     try {
       const { error: rpcErr } = await getSupabase()
         .rpc('register_user_profile', {
@@ -932,9 +839,7 @@ async function handleRegister(e) {
       }
     }
 
-    // Fallback: INSERT directo si el RPC no existe
     if (!profileInserted) {
-      // El primer usuario se aprueba automáticamente
       let estadoFallback = 'pendiente';
       try {
         const { count } = await getSupabase()
@@ -1023,23 +928,20 @@ async function handleResetPassword(e) {
    LOGOUT
 ══════════════════════════════════════════════════════════ */
 async function handleLogout() {
-  stopInactivityWatch();      // ← Detener vigilancia de inactividad
+  stopInactivityWatch();
   try {
     await logAudit('SESSION_LOGOUT', APP.currentUser?.id, 'Cierre de sesión');
   } catch (_) {}
-  // Limpiar estado ANTES de signOut para evitar race conditions
-  APP.currentUser    = null;
-  APP.currentProfile = null;
+  APP.currentUser      = null;
+  APP.currentProfile   = null;
   APP._loginInProgress = false;
-  // Limpiar datos en memoria
-  APP.allVoters      = [];
+  APP.allVoters        = [];
   APP.allUsers       = [];
   APP.filteredVoters = [];
   APP.auditLogs      = [];
   if (APP.chart) { APP.chart.destroy(); APP.chart = null; }
   await getSupabase().auth.signOut();
-  // Forzar showAuth siempre (por si onAuthStateChange no dispara en demo)
-  showAuth();
+  showAuth(); // por si onAuthStateChange no dispara en demo
   showNotif('info', 'Sesión cerrada', 'Hasta luego.');
 }
 
@@ -1067,11 +969,8 @@ async function loadVoters() {
       .order('created_at', { ascending: false })
       .limit(500);
 
-    // Admin → sin filtro (ve todo)
-    // Coordinador → su provincia
-    // Supervisor / Registrador / Observador → sus propios registros
     if (isAdmin()) {
-      // sin filtro — admin ve todo
+      // admin ve todo
     } else if (isCoordOrAbove()) {
       query = query.eq('provincia', p.provincia);
     } else {
@@ -1082,7 +981,6 @@ async function loadVoters() {
     const { data, error, count } = await withTimeout(query, 15000, 'cargar registros');
 
     if (error) {
-      // Error de RLS — mostrar aviso claro
       if (error.code === '42501' || error.message?.includes('policy') || error.message?.includes('permission')) {
         showNotif('error', 'Sin permisos de lectura', 'Aplica el archivo supabase_patch.sql en Supabase para corregir las políticas RLS.');
       }
@@ -1111,14 +1009,12 @@ async function loadVoters() {
 }
 
 async function loadUsers() {
-  // En modo demo, no hay usuarios que cargar
   if (DEMO_MODE) {
     APP.allUsers = [];
     renderUsersTable([]);
     return;
   }
 
-  // Mostrar estado de carga en la tabla
   const tbody = document.getElementById('usersTableBody');
   if (tbody) {
     tbody.innerHTML = `<tr class="empty-row"><td colspan="12">
@@ -1419,15 +1315,14 @@ async function _deleteUserCompletely(userId, authUserId, userName, auditAction) 
     );
     if (delErr) throw delErr;
 
-    // 2. Borrar de Supabase Auth via RPC (opcional — requiere función en DB)
+    // Borrar de Auth via RPC (opcional)
     try {
       await withTimeout(
         getSupabase().rpc('delete_auth_user', { p_auth_user_id: authUserId }),
         10000, 'eliminar cuenta auth'
       );
-    } catch (rpcErr) {
-      // RPC opcional — el perfil ya fue borrado; correo queda libre en auth
-      console.warn('RPC delete_auth_user no disponible — solo se borró el perfil:', rpcErr.message);
+    } catch (_) {
+      // RPC opcional — perfil ya fue borrado; correo queda libre en auth
     }
 
     showNotif('warning', 'Usuario eliminado', userName);
@@ -1451,7 +1346,6 @@ function renderVotersTable(voters) {
   const tbody = document.getElementById('votersTableBody');
   if (!tbody) return;
 
-  // ── Paginación client-side ─────────────────────────────────────
   const page  = APP.votersPage;
   const size  = APP.VOTERS_PAGE_SIZE;
   const total = voters.length;
@@ -2011,16 +1905,13 @@ async function logAudit(accion, objetivo, detalles) {
    UI — NAVEGACIÓN DE PANELES
 ══════════════════════════════════════════════════════════ */
 function activatePanel(panelId) {
-  // Paneles de contenido
   document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('usersSection')?.classList.add('section-hidden');
   document.getElementById('panelAudit')?.classList.add('section-hidden');
 
-  // Nav items
   document.querySelectorAll('.nav-item').forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
   document.querySelectorAll(`[data-panel="${panelId}"]`).forEach(b => { b.classList.add('active'); b.setAttribute('aria-current', 'page'); });
 
-  // Mostrar panel — con verificación de permisos
   switch (panelId) {
     case 'overview':
       document.getElementById('panelOverview')?.classList.add('active');
@@ -2221,13 +2112,11 @@ function getActionClass(action) {
    EVENTOS
 ══════════════════════════════════════════════════════════ */
 function bindEvents() {
-  // Auth
   document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
   document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
   document.getElementById('forgotForm')?.addEventListener('submit', handleForgotPassword);
   document.getElementById('resetForm')?.addEventListener('submit', handleResetPassword);
 
-  // Tabs de auth
   document.getElementById('showLogin')?.addEventListener('click', () => {
     document.getElementById('loginForm').classList.add('active');
     document.getElementById('registerForm').classList.remove('active');
@@ -2245,18 +2134,12 @@ function bindEvents() {
     document.getElementById('authMessage').textContent = '';
   });
 
-  // Modales auth
   document.getElementById('forgotPasswordBtn')?.addEventListener('click', () => showModal('forgotPasswordModal'));
   document.getElementById('closeForgotModalBtn')?.addEventListener('click', () => closeModal('forgotPasswordModal'));
   document.getElementById('cancelForgotBtn')?.addEventListener('click', () => closeModal('forgotPasswordModal'));
 
-  // Logout
   document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
-
-  // Tema
   document.getElementById('themeToggleBtn')?.addEventListener('click', toggleTheme);
-
-  // Exportar
   document.getElementById('exportBtn')?.addEventListener('click', exportToExcel);
   document.getElementById('auditExportBtn')?.addEventListener('click', exportAuditToExcel);
 
@@ -2272,7 +2155,6 @@ function bindEvents() {
     document.getElementById('sidebarOverlay')?.classList.remove('active');
   });
 
-  // Nav items
   document.querySelectorAll('.nav-item[data-panel]').forEach(btn => {
     btn.addEventListener('click', () => {
       activatePanel(btn.dataset.panel);
@@ -2284,7 +2166,6 @@ function bindEvents() {
     });
   });
 
-  // Grupos de navegación colapsables
   document.querySelectorAll('.nav-group-header').forEach(hdr => {
     hdr.addEventListener('click', () => {
       const target = document.getElementById(hdr.dataset.target);
@@ -2295,41 +2176,30 @@ function bindEvents() {
     hdr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hdr.click(); } });
   });
 
-  // Registro
   document.getElementById('voterForm')?.addEventListener('submit', handleVoterSubmit);
   document.getElementById('cancelEditVoterBtn')?.addEventListener('click', cancelEditVoter);
-
-  // Usuarios
   document.getElementById('userEditForm')?.addEventListener('submit', handleUserEdit);
   document.getElementById('closeUserEditModalBtn')?.addEventListener('click', () => closeModal('userEditModal'));
   document.getElementById('cancelUserEditBtn')?.addEventListener('click', () => closeModal('userEditModal'));
 
-  // Filtros de la sección usuarios
   ['usersSearch','usersFilterRole','usersFilterEstado'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', filterUsers);
   });
   document.getElementById('usersRefreshBtn')?.addEventListener('click', () => {
     loadUsers();
-    // Limpiar filtros al recargar
     ['usersSearch','usersFilterRole','usersFilterEstado'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
   });
 
-  // Modales — cerrar al clicar fondo
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => {
       if (e.target === overlay) closeModal(overlay.id);
     });
   });
 
-  // Duplicate voter modal
   document.getElementById('closeDupVoterBtn')?.addEventListener('click', () => closeModal('duplicateVoterModal'));
 
-  // Reset password modal
-  document.getElementById('resetForm')?.addEventListener('submit', handleResetPassword);
-
-  // Filtros
   const filterIds = ['searchInput','filterProvince','filterMunicipio','filterSector','filterMesa','filterRole','filterRegistrar'];
   filterIds.forEach(id => {
     const el = document.getElementById(id);
@@ -2337,10 +2207,8 @@ function bindEvents() {
   });
   document.getElementById('clearFiltersBtn')?.addEventListener('click', clearFilters);
 
-  // Búsqueda del topbar
   document.getElementById('topbarSearchInput')?.addEventListener('input', e => handleTopbarSearch(e.target.value));
 
-  // Filtros de auditoría
   ['auditSearch','auditFilterAction','auditFilterActor','auditFilterFrom','auditFilterTo'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', () => {
       APP.auditPage = 1;
@@ -2348,17 +2216,13 @@ function bindEvents() {
     });
   });
 
-  // Escape para cerrar modales
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => closeModal(m.id));
     }
   });
 
-  // El botón Conóceme ahora es un <a> que abre moreilaguerrero.com — no necesita JS
-
-  // ── Modal Mi Perfil ────────────────────────────────────────────
-  // Abrir al hacer clic en el cuadro de usuario en la barra lateral
+  // Modal Mi Perfil
   const sidebarUserBox = document.getElementById('sidebarUserBox');
   if (sidebarUserBox) {
     sidebarUserBox.addEventListener('click', openProfileModal);
@@ -2367,16 +2231,9 @@ function bindEvents() {
     });
   }
 
-  // Cerrar modal perfil
   document.getElementById('closeProfileModalBtn')?.addEventListener('click', () => closeModal('profileModal'));
-
-  // Subida de foto
   document.getElementById('profilePhotoInput')?.addEventListener('change', handlePhotoUpload);
-
-  // Botón quitar foto
   document.getElementById('removePhotoBtn')?.addEventListener('click', removeProfilePhoto);
-
-  // Guardar cambios del perfil
   document.getElementById('profileForm')?.addEventListener('submit', handleProfileUpdate);
 }
 
@@ -2389,6 +2246,6 @@ window.openEditUser       = openEditUser;
 window.toggleUserStatus   = toggleUserStatus;
 window.deleteUser         = deleteUser;
 window.removeProfilePhoto = removeProfilePhoto;
-window.loadUsers          = loadUsers;    // para botón "Reintentar" en tabla de usuarios
+window.loadUsers          = loadUsers;
 window.openProfileModal   = openProfileModal;
 window.openProfileModal   = openProfileModal;
