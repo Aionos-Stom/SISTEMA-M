@@ -5,8 +5,9 @@
 
 'use strict';
 
-// xlsx-js-style expone XLSXStyle; lo alias a XLSX para compatibilidad
-if (window.XLSXStyle) window.XLSX = window.XLSXStyle;
+// xlsx-js-style (colores) carga después de xlsx estándar (fallback).
+// XLSXStyle o la versión que haya sobreescrito XLSX — tomamos la mejor disponible.
+window.XLSX = window.XLSXStyle || window.XLSX;
 
 /* ── CONFIGURACIÓN ─────────────────────────────────────── */
 const SUPABASE_URL  = 'https://nmvqqbwfotvslwxkohrt.supabase.co';
@@ -1822,7 +1823,8 @@ function getFilteredAuditLogs() {
    EXPORTAR
 ══════════════════════════════════════════════════════════ */
 /* ── Aplica colores, bordes y tipografía al worksheet ──────── */
-function _applyXlsxStyles(ws, numCols, numDataRows, accentRgb) {
+function _applyXlsxStyles(ws, numCols, numDataRows, accentRgb, XL) {
+  XL = XL || window.XLSX; if (!XL) return;
   const ACC  = accentRgb || '2A8A8A';
   const LTBG = 'EDF7F7';   // stripe claro
   const TXT  = '1A2B2B';   // texto datos
@@ -1855,18 +1857,19 @@ function _applyXlsxStyles(ws, numCols, numDataRows, accentRgb) {
     ws['!rows'].push({ hpx: 19 });
     const stripe = r % 2 === 0;
     for (let c = 0; c < numCols; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      const cell = ws[XL.utils.encode_cell({ r, c })];
       if (cell) cell.s = rowStyle(stripe);
     }
   }
   for (let c = 0; c < numCols; c++) {
-    const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+    const cell = ws[XL.utils.encode_cell({ r: 0, c })];
     if (cell) cell.s = hdrStyle;
   }
 }
 
 /* ── Hoja 2: Dashboard de resultados ───────────────────── */
-function _buildDashboardSheet(data) {
+function _buildDashboardSheet(data, XL) {
+  XL = XL || window.XLSX; if (!XL) return {};
   const ws     = {};
   const rows   = [];
   const merges = [];
@@ -1880,7 +1883,7 @@ function _buildDashboardSheet(data) {
   const BDR     = 'B2D8D8';
 
   const put = (r, col, v, s) => {
-    const addr = XLSX.utils.encode_cell({ r, c: col });
+    const addr = XL.utils.encode_cell({ r, c: col });
     ws[addr] = { v, t: typeof v === 'number' ? 'n' : 's', s };
   };
 
@@ -2054,7 +2057,10 @@ function _buildDashboardSheet(data) {
 }
 
 function exportToExcel() {
+  const XL = window.XLSX;
+  if (!XL) { showNotif('error', 'Error', 'Librería Excel no disponible. Recargue la página.'); return; }
   if (!APP.filteredVoters.length) { showNotif('warning', 'Sin datos', 'No hay registros para exportar.'); return; }
+
   const data = APP.filteredVoters.map(v => ({
     'Nombre':            v.nombre        || '',
     'Cédula':            v.cedula        || '',
@@ -2071,13 +2077,16 @@ function exportToExcel() {
     'Rol registrador':   v.registrado_por_rol    || '',
     'Fecha':             formatDate(v.created_at),
   }));
-  const wb = XLSX.utils.book_new();
 
-  // Hoja 1: Dashboard
-  XLSX.utils.book_append_sheet(wb, _buildDashboardSheet(data), 'Dashboard');
+  const wb = XL.utils.book_new();
 
-  // Hoja 2: Registros con filtros
-  const ws = XLSX.utils.json_to_sheet(data);
+  // Hoja 1: Dashboard (si falla, se omite — no bloquea el export)
+  try {
+    XL.utils.book_append_sheet(wb, _buildDashboardSheet(data, XL), 'Dashboard');
+  } catch (_) {}
+
+  // Hoja 2: Datos con filtros
+  const ws = XL.utils.json_to_sheet(data);
   ws['!cols'] = [
     { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 },
     { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 18 },
@@ -2086,15 +2095,17 @@ function exportToExcel() {
   ];
   ws['!freeze']     = { xSplit: 0, ySplit: 1 };
   ws['!autofilter'] = { ref: `A1:N${data.length + 1}` };
-  _applyXlsxStyles(ws, 14, data.length, '2A8A8A');
-  XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+  try { _applyXlsxStyles(ws, 14, data.length, '2A8A8A', XL); } catch (_) {}
+  XL.utils.book_append_sheet(wb, ws, 'Registros');
 
-  XLSX.writeFile(wb, `Peravia_Registros_${new Date().toISOString().substring(0,10)}.xlsx`);
+  XL.writeFile(wb, `Peravia_Registros_${new Date().toISOString().substring(0,10)}.xlsx`);
   showNotif('success', 'Exportado', `${data.length} registros exportados.`);
   logAudit('DATA_EXPORT', null, `Exportación Excel: ${data.length} registros`);
 }
 
 function exportAuditToExcel() {
+  const XL = window.XLSX;
+  if (!XL) { showNotif('error', 'Error', 'Librería Excel no disponible. Recargue la página.'); return; }
   const logs = getFilteredAuditLogs();
   if (!logs.length) { showNotif('warning', 'Sin datos', 'No hay logs para exportar.'); return; }
   const data = logs.map(l => ({
@@ -2105,16 +2116,17 @@ function exportAuditToExcel() {
     'Objetivo':  l.objetivo     || '',
     'Detalles':  l.detalles     || '',
   }));
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XL.utils.book_new();
+  const ws = XL.utils.json_to_sheet(data);
   ws['!cols'] = [
     { wch: 20 }, { wch: 28 }, { wch: 16 },
     { wch: 20 }, { wch: 18 }, { wch: 50 },
   ];
-  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-  _applyXlsxStyles(ws, 6, data.length, '5B4A8A');
-  XLSX.utils.book_append_sheet(wb, ws, 'Auditoría');
-  XLSX.writeFile(wb, `Peravia_Auditoria_${new Date().toISOString().substring(0,10)}.xlsx`);
+  ws['!freeze']     = { xSplit: 0, ySplit: 1 };
+  ws['!autofilter'] = { ref: `A1:F${data.length + 1}` };
+  try { _applyXlsxStyles(ws, 6, data.length, '5B4A8A', XL); } catch (_) {}
+  XL.utils.book_append_sheet(wb, ws, 'Auditoría');
+  XL.writeFile(wb, `Peravia_Auditoria_${new Date().toISOString().substring(0,10)}.xlsx`);
   logAudit('AUDIT_EXPORT', null, `Exportación de auditoría: ${data.length} registros`);
 }
 
