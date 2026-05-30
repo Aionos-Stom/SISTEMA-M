@@ -1862,6 +1862,194 @@ function _applyXlsxStyles(ws, numCols, numDataRows, accentRgb) {
   }
 }
 
+/* ── Hoja 2: Dashboard de resultados ───────────────────── */
+function _buildDashboardSheet(data) {
+  const ws     = {};
+  const rows   = [];
+  const merges = [];
+
+  const PRIMARY = '2A8A8A';
+  const AMBER   = 'B8720D';
+  const AMBERBG = 'FEF3DC';
+  const WHT     = 'FFFFFF';
+  const TXT     = '1A2B2B';
+  const LT      = 'EDF7F7';
+  const BDR     = 'B2D8D8';
+
+  const put = (r, col, v, s) => {
+    const addr = XLSX.utils.encode_cell({ r, c: col });
+    ws[addr] = { v, t: typeof v === 'number' ? 'n' : 's', s };
+  };
+
+  const bdr = (style, rgb) => ({
+    top:    { style, color: { rgb } },
+    bottom: { style, color: { rgb } },
+    left:   { style, color: { rgb } },
+    right:  { style, color: { rgb } },
+  });
+
+  const S = {
+    title: {
+      font: { bold: true, sz: 16, color: { rgb: WHT }, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: PRIMARY } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+    },
+    sub: {
+      font: { sz: 9, color: { rgb: '5A7A7A' }, italic: true, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: 'F0F8F8' } },
+      border: bdr('thin', BDR),
+      alignment: { horizontal: 'center', vertical: 'center' },
+    },
+    secHdr: {
+      font: { bold: true, sz: 10, color: { rgb: WHT }, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: AMBER } },
+      border: bdr('thin', AMBER),
+      alignment: { horizontal: 'left', vertical: 'center' },
+    },
+    colHdr: {
+      font: { bold: true, sz: 10, color: { rgb: WHT }, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: PRIMARY } },
+      border: bdr('medium', PRIMARY),
+      alignment: { horizontal: 'center', vertical: 'center' },
+    },
+    kpiLbl: {
+      font: { sz: 10, color: { rgb: TXT }, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: LT } },
+      border: bdr('thin', BDR),
+      alignment: { horizontal: 'left', vertical: 'center' },
+    },
+    kpiVal: {
+      font: { bold: true, sz: 13, color: { rgb: PRIMARY }, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: WHT } },
+      border: bdr('thin', BDR),
+      alignment: { horizontal: 'center', vertical: 'center' },
+    },
+    dataA: (s) => ({
+      font: { sz: 10, color: { rgb: TXT }, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: s ? LT : WHT } },
+      border: bdr('thin', BDR),
+      alignment: { horizontal: 'left', vertical: 'center' },
+    }),
+    dataN: (s) => ({
+      font: { bold: true, sz: 10, color: { rgb: PRIMARY }, name: 'Calibri' },
+      fill: { patternType: 'solid', fgColor: { rgb: s ? LT : WHT } },
+      border: bdr('thin', BDR),
+      alignment: { horizontal: 'center', vertical: 'center' },
+    }),
+    blank: (s) => ({
+      font: {},
+      fill: { patternType: 'solid', fgColor: { rgb: s ? LT : WHT } },
+      border: bdr('thin', BDR),
+    }),
+  };
+
+  // Calcular estadísticas
+  const total   = data.length;
+  const byUser  = {};
+  const byMun   = {};
+
+  data.forEach(v => {
+    const nombre = v['Registrado por'] || 'Sin nombre';
+    const rol    = v['Rol registrador'] || '—';
+    if (!byUser[nombre]) byUser[nombre] = { nombre, rol, count: 0 };
+    byUser[nombre].count++;
+    const mun = v['Municipio'] || 'Sin municipio';
+    byMun[mun] = (byMun[mun] || 0) + 1;
+  });
+
+  const userList = Object.values(byUser).sort((a, b) => b.count - a.count);
+  const munList  = Object.entries(byMun).sort(([, a], [, b]) => b - a);
+
+  let r = 0;
+
+  // Título
+  rows.push({ hpx: 38 });
+  [0, 1, 2].forEach(i => put(r, i, i === 0 ? 'DASHBOARD DE RESULTADOS — PERAVIA' : '', S.title));
+  merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+  r++;
+
+  // Subtítulo
+  rows.push({ hpx: 18 });
+  const fechaStr = new Date().toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' });
+  [0, 1, 2].forEach(i => put(r, i, i === 0 ? `Exportado el ${fechaStr}   ·   ${total} registros en total` : '', S.sub));
+  merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+  r++;
+
+  // Espacio
+  rows.push({ hpx: 8 }); r++;
+
+  // ── Resumen general ──
+  rows.push({ hpx: 22 });
+  [0, 1, 2].forEach(i => put(r, i, i === 0 ? '  RESUMEN GENERAL' : '', S.secHdr));
+  merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+  r++;
+
+  rows.push({ hpx: 20 });
+  ['Indicador', 'Valor', ''].forEach((v, i) => put(r, i, v, S.colHdr));
+  r++;
+
+  [
+    ['Total de registros',      total],
+    ['Registradores únicos',    userList.length],
+    ['Municipios activos',      munList.length],
+  ].forEach(([lbl, val]) => {
+    rows.push({ hpx: 24 });
+    put(r, 0, lbl, S.kpiLbl);
+    put(r, 1, val, S.kpiVal);
+    put(r, 2, '',  S.blank(false));
+    r++;
+  });
+
+  rows.push({ hpx: 8 }); r++;
+
+  // ── Registros por usuario ──
+  rows.push({ hpx: 22 });
+  [0, 1, 2].forEach(i => put(r, i, i === 0 ? '  REGISTROS POR USUARIO' : '', S.secHdr));
+  merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+  r++;
+
+  rows.push({ hpx: 20 });
+  ['Usuario / Registrador', 'Rol', 'Total'].forEach((v, i) => put(r, i, v, S.colHdr));
+  r++;
+
+  userList.forEach((u, i) => {
+    rows.push({ hpx: 19 });
+    const s = i % 2 === 1;
+    put(r, 0, u.nombre, S.dataA(s));
+    put(r, 1, u.rol,    S.dataA(s));
+    put(r, 2, u.count,  S.dataN(s));
+    r++;
+  });
+
+  rows.push({ hpx: 8 }); r++;
+
+  // ── Registros por municipio ──
+  rows.push({ hpx: 22 });
+  [0, 1, 2].forEach(i => put(r, i, i === 0 ? '  REGISTROS POR MUNICIPIO' : '', S.secHdr));
+  merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+  r++;
+
+  rows.push({ hpx: 20 });
+  ['Municipio', 'Total', ''].forEach((v, i) => put(r, i, v, S.colHdr));
+  r++;
+
+  munList.forEach(([mun, count], i) => {
+    rows.push({ hpx: 19 });
+    const s = i % 2 === 1;
+    put(r, 0, mun,   S.dataA(s));
+    put(r, 1, count, S.dataN(s));
+    put(r, 2, '',    S.blank(s));
+    r++;
+  });
+
+  ws['!ref']    = XLSX.utils.encode_range({ r: 0, c: 0 }, { r: r - 1, c: 2 });
+  ws['!cols']   = [{ wch: 36 }, { wch: 22 }, { wch: 12 }];
+  ws['!rows']   = rows;
+  ws['!merges'] = merges;
+
+  return ws;
+}
+
 function exportToExcel() {
   if (!APP.filteredVoters.length) { showNotif('warning', 'Sin datos', 'No hay registros para exportar.'); return; }
   const data = APP.filteredVoters.map(v => ({
@@ -1881,6 +2069,11 @@ function exportToExcel() {
     'Fecha':             formatDate(v.created_at),
   }));
   const wb = XLSX.utils.book_new();
+
+  // Hoja 1: Dashboard
+  XLSX.utils.book_append_sheet(wb, _buildDashboardSheet(data), 'Dashboard');
+
+  // Hoja 2: Registros con filtros
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = [
     { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 },
@@ -1888,9 +2081,11 @@ function exportToExcel() {
     { wch: 8  }, { wch: 22 }, { wch: 30 }, { wch: 24 },
     { wch: 16 }, { wch: 16 },
   ];
-  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  ws['!freeze']     = { xSplit: 0, ySplit: 1 };
+  ws['!autofilter'] = { ref: `A1:N${data.length + 1}` };
   _applyXlsxStyles(ws, 14, data.length, '2A8A8A');
-  XLSX.utils.book_append_sheet(wb, ws, 'Registros Peravia');
+  XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+
   XLSX.writeFile(wb, `Peravia_Registros_${new Date().toISOString().substring(0,10)}.xlsx`);
   showNotif('success', 'Exportado', `${data.length} registros exportados.`);
   logAudit('DATA_EXPORT', null, `Exportación Excel: ${data.length} registros`);
