@@ -1824,6 +1824,50 @@ function getFilteredAuditLogs() {
 /* ══════════════════════════════════════════════════════════
    EXPORTAR
 ══════════════════════════════════════════════════════════ */
+/* ── Aplica colores, bordes y tipografía al worksheet ──────── */
+function _applyXlsxStyles(ws, numCols, numDataRows, accentRgb) {
+  const ACC  = accentRgb || '2A8A8A';
+  const LTBG = 'EDF7F7';   // stripe claro
+  const TXT  = '1A2B2B';   // texto datos
+  const WHT  = 'FFFFFF';
+  const BDR  = 'B2D8D8';   // borde teal suave
+
+  const mkBorder = (style) => ({
+    top:    { style, color: { rgb: BDR } },
+    bottom: { style, color: { rgb: BDR } },
+    left:   { style, color: { rgb: BDR } },
+    right:  { style, color: { rgb: BDR } },
+  });
+
+  const hdrStyle = {
+    font:      { bold: true, color: { rgb: WHT }, sz: 11, name: 'Calibri' },
+    fill:      { patternType: 'solid', fgColor: { rgb: ACC } },
+    border:    mkBorder('medium'),
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: false },
+  };
+
+  const rowStyle = (stripe) => ({
+    font:      { color: { rgb: TXT }, sz: 10, name: 'Calibri' },
+    fill:      { patternType: 'solid', fgColor: { rgb: stripe ? LTBG : WHT } },
+    border:    mkBorder('thin'),
+    alignment: { vertical: 'center', wrapText: false },
+  });
+
+  ws['!rows'] = [{ hpx: 26 }];
+  for (let r = 1; r <= numDataRows; r++) {
+    ws['!rows'].push({ hpx: 19 });
+    const stripe = r % 2 === 0;
+    for (let c = 0; c < numCols; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r, c })];
+      if (cell) cell.s = rowStyle(stripe);
+    }
+  }
+  for (let c = 0; c < numCols; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+    if (cell) cell.s = hdrStyle;
+  }
+}
+
 function exportToExcel() {
   if (!APP.filteredVoters.length) { showNotif('warning', 'Sin datos', 'No hay registros para exportar.'); return; }
   const data = APP.filteredVoters.map(v => ({
@@ -1845,22 +1889,13 @@ function exportToExcel() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = [
-    { wch: 32 }, // Nombre
-    { wch: 14 }, // Cédula
-    { wch: 16 }, // Teléfono
-    { wch: 14 }, // Región
-    { wch: 20 }, // Municipio
-    { wch: 18 }, // Distrito
-    { wch: 14 }, // Zona
-    { wch: 18 }, // Sector
-    { wch: 8  }, // Mesa
-    { wch: 22 }, // Recinto
-    { wch: 30 }, // Observación
-    { wch: 24 }, // Registrado por
-    { wch: 16 }, // Rol registrador
-    { wch: 16 }, // Fecha
+    { wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 14 },
+    { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 18 },
+    { wch: 8  }, { wch: 22 }, { wch: 30 }, { wch: 24 },
+    { wch: 16 }, { wch: 16 },
   ];
   ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  _applyXlsxStyles(ws, 14, data.length, '2A8A8A');
   XLSX.utils.book_append_sheet(wb, ws, 'Registros Peravia');
   XLSX.writeFile(wb, `Peravia_Registros_${new Date().toISOString().substring(0,10)}.xlsx`);
   showNotif('success', 'Exportado', `${data.length} registros exportados.`);
@@ -1881,14 +1916,11 @@ function exportAuditToExcel() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = [
-    { wch: 20 }, // Fecha/Hora
-    { wch: 28 }, // Actor
-    { wch: 16 }, // Rol
-    { wch: 20 }, // Acción
-    { wch: 18 }, // Objetivo
-    { wch: 50 }, // Detalles
+    { wch: 20 }, { wch: 28 }, { wch: 16 },
+    { wch: 20 }, { wch: 18 }, { wch: 50 },
   ];
   ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  _applyXlsxStyles(ws, 6, data.length, '5B4A8A');
   XLSX.utils.book_append_sheet(wb, ws, 'Auditoría');
   XLSX.writeFile(wb, `Peravia_Auditoria_${new Date().toISOString().substring(0,10)}.xlsx`);
   logAudit('AUDIT_EXPORT', null, `Exportación de auditoría: ${data.length} registros`);
