@@ -5,6 +5,9 @@
 
 'use strict';
 
+// xlsx-js-style expone XLSXStyle; lo alias a XLSX para compatibilidad
+if (window.XLSXStyle) window.XLSX = window.XLSXStyle;
+
 /* ── CONFIGURACIÓN ─────────────────────────────────────── */
 const SUPABASE_URL  = 'https://nmvqqbwfotvslwxkohrt.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tdnFxYndmb3R2c2x3eGtvaHJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MTc4NTksImV4cCI6MjA5Mjk5Mzg1OX0.lpvLNqaRy6XElWsxe_R09XecvFpWffdiye1uet0oxFU';
