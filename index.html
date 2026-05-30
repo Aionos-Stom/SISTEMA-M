@@ -2,9 +2,24 @@
 <html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Administración Peravia — Sistema de Gestión</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%232A8A8A'>P</text></svg>" />
+
+  <!-- ── PWA: Android ───────────────────────────────── -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2A8A8A" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- ── PWA: iOS / iPhone ─────────────────────────── -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Peravia" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.svg" />
+
+  <!-- ── SEO / descripción ─────────────────────────── -->
+  <meta name="description" content="Sistema de Gestión Territorial de Peravia, República Dominicana." />
+  <meta name="application-name" content="Peravia" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -141,14 +156,10 @@
             </select>
           </div>
         </div>
-        <div class="grid-3">
+        <div class="grid-2">
           <div class="input-group">
             <label for="registerRegion">Región</label>
             <input type="text" id="registerRegion" placeholder="Región" />
-          </div>
-          <div class="input-group">
-            <label for="registerMunicipio">Municipio</label>
-            <input type="text" id="registerMunicipio" placeholder="Municipio" />
           </div>
           <div class="input-group">
             <label for="registerDistrito">Distrito</label>
@@ -421,11 +432,7 @@
                   <input type="text" id="voterRegion" placeholder="Región" />
                 </div>
               </div>
-              <div class="grid-3">
-                <div class="input-group">
-                  <label for="voterMunicipio">Municipio/Sección</label>
-                  <input type="text" id="voterMunicipio" required />
-                </div>
+              <div class="grid-2">
                 <div class="input-group">
                   <label for="voterDistrito">Distrito</label>
                   <input type="text" id="voterDistrito" />
@@ -471,14 +478,10 @@
               <label for="searchInput">Búsqueda general</label>
               <input type="search" id="searchInput" placeholder="Nombre, cédula, teléfono, recinto…" />
             </div>
-            <div class="grid-2 compact-grid">
+            <div class="compact-grid">
               <div class="input-group">
                 <label for="filterProvince">Municipio</label>
                 <select id="filterProvince"><option value="">Todos</option></select>
-              </div>
-              <div class="input-group">
-                <label for="filterMunicipio">Sección</label>
-                <select id="filterMunicipio"><option value="">Todas</option></select>
               </div>
             </div>
             <div class="grid-2 compact-grid">
@@ -534,7 +537,6 @@
                   <th scope="col">Teléfono</th>
                   <th scope="col">Región</th>
                   <th scope="col">Municipio</th>
-                  <th scope="col">Sección</th>
                   <th scope="col">Distrito</th>
                   <th scope="col">Zona</th>
                   <th scope="col">Sector</th>
@@ -604,7 +606,6 @@
                 <th scope="col">Teléfono</th>
                 <th scope="col">Región</th>
                 <th scope="col">Municipio</th>
-                <th scope="col">Sección</th>
                 <th scope="col">Distrito</th>
                 <th scope="col">Zona</th>
                 <th scope="col">Estado</th>
@@ -727,14 +728,10 @@
           </select>
         </div>
       </div>
-      <div class="grid-3" style="margin-top:14px">
+      <div class="grid-2" style="margin-top:14px">
         <div class="input-group">
           <label for="editUserRegion">Región</label>
           <input type="text" id="editUserRegion" placeholder="Región" required />
-        </div>
-        <div class="input-group">
-          <label for="editUserMunicipio">Sección</label>
-          <input type="text" id="editUserMunicipio" placeholder="Sección" required />
         </div>
         <div class="input-group">
           <label for="editUserDistrito">Distrito</label>
@@ -877,7 +874,7 @@
       <div class="mg-footer-actions">
         <a class="mg-conoceme-btn" href="https://moreilaguerrero.com/" target="_blank" rel="noopener noreferrer" aria-label="Visitar sitio web de Moreila Guerrero">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          moreilaguerrero.com
+          Conoceme Mas
         </a>
         <span class="mg-footer-copy">© 2026 Administración Peravia · República Dominicana</span>
       </div>
@@ -968,5 +965,14 @@
 </div>
 
 <script src="script.js" defer></script>
+
+<!-- Registro del Service Worker (PWA) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>

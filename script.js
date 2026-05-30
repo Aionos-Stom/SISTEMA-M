@@ -767,7 +767,6 @@ async function handleRegister(e) {
   const role       = document.getElementById('registerRole').value;
   const province   = document.getElementById('registerProvince').value;
   const region     = document.getElementById('registerRegion').value.trim();
-  const municipio  = document.getElementById('registerMunicipio').value.trim();
   const distrito   = document.getElementById('registerDistrito').value.trim();
   const zone       = document.getElementById('registerZone').value.trim();
   const password   = document.getElementById('registerPassword').value;
@@ -825,7 +824,6 @@ async function handleRegister(e) {
           p_rol:             role,
           p_provincia:       province,
           p_region:          region,
-          p_municipio:       municipio,
           p_distrito:        distrito,
           p_zona:            zone,
         });
@@ -858,7 +856,6 @@ async function handleRegister(e) {
           rol:       role,
           provincia: province,
           region,
-          municipio,
           distrito,
           zona:      zone,
           estado:    estadoFallback,
@@ -1097,7 +1094,6 @@ async function handleVoterSubmit(e) {
     telefono:            document.getElementById('voterPhone').value.trim(),
     provincia:           document.getElementById('voterProvince').value,
     region:              document.getElementById('voterRegion').value.trim(),
-    municipio:           document.getElementById('voterMunicipio').value.trim(),
     distrito:            document.getElementById('voterDistrito').value.trim(),
     zona:                document.getElementById('voterZone').value.trim(),
     sector:              document.getElementById('voterSector').value.trim(),
@@ -1109,7 +1105,7 @@ async function handleVoterSubmit(e) {
     registrado_por_rol:  APP.currentProfile?.rol,
   };
 
-  const requiredFields = ['nombre','cedula','telefono','provincia','municipio','zona','sector','mesa','recinto'];
+  const requiredFields = ['nombre','cedula','telefono','provincia','zona','sector','mesa','recinto'];
   for (const f of requiredFields) {
     if (!payload[f]) return showStatusMsg('voterMessage', 'error', 'Complete todos los campos obligatorios.');
   }
@@ -1171,7 +1167,6 @@ function editVoter(voter) {
   document.getElementById('voterPhone').value          = voter.telefono   || '';
   document.getElementById('voterProvince').value       = voter.provincia  || '';
   document.getElementById('voterRegion').value         = voter.region     || '';
-  document.getElementById('voterMunicipio').value      = voter.municipio  || '';
   document.getElementById('voterDistrito').value       = voter.distrito   || '';
   document.getElementById('voterZone').value           = voter.zona       || '';
   document.getElementById('voterSector').value         = voter.sector     || '';
@@ -1217,7 +1212,6 @@ async function handleUserEdit(e) {
     rol:             document.getElementById('editUserRole').value,
     provincia:       document.getElementById('editUserProvince').value,
     region:          document.getElementById('editUserRegion').value.trim(),
-    municipio:       document.getElementById('editUserMunicipio').value.trim(),
     distrito:        document.getElementById('editUserDistrito').value.trim(),
     zona:            document.getElementById('editUserZone').value.trim(),
   };
@@ -1264,7 +1258,6 @@ function openEditUser(user) {
   document.getElementById('editUserRole').value       = user.rol             || '';
   document.getElementById('editUserProvince').value   = user.provincia       || '';
   document.getElementById('editUserRegion').value     = user.region          || '';
-  document.getElementById('editUserMunicipio').value  = user.municipio       || '';
   document.getElementById('editUserDistrito').value   = user.distrito        || '';
   document.getElementById('editUserZone').value       = user.zona            || '';
 
@@ -1352,7 +1345,7 @@ function renderVotersTable(voters) {
   const slice = voters.slice((page - 1) * size, page * size);
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="16">No hay registros para mostrar.</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="15">No hay registros para mostrar.</td></tr>`;
     renderVotersPagination(total);
     return;
   }
@@ -1364,7 +1357,6 @@ function renderVotersTable(voters) {
       <td>${esc(v.telefono)}</td>
       <td>${esc(v.region)}</td>
       <td>${esc(v.provincia)}</td>
-      <td>${esc(v.municipio)}</td>
       <td>${esc(v.distrito)}</td>
       <td>${esc(v.zona)}</td>
       <td>${esc(v.sector)}</td>
@@ -1535,7 +1527,6 @@ function renderUsersTable(users) {
       <td>${esc(u.telefono || '—')}</td>
       <td>${esc(u.region || '—')}</td>
       <td>${esc(u.provincia || '—')}</td>
-      <td>${esc(u.municipio || '—')}</td>
       <td>${esc(u.distrito || '—')}</td>
       <td>${esc(u.zona || '—')}</td>
       <td><span class="status-badge ${u.estado === 'aprobado' ? 'status-approved' : u.estado === 'pendiente' ? 'status-pending' : 'status-rejected'}">${u.estado || '—'}</span></td>
@@ -1725,7 +1716,6 @@ function renderRanking(labels, values) {
 ══════════════════════════════════════════════════════════ */
 function populateDynamicFilters(voters) {
   const fields = {
-    filterMunicipio: v => v.municipio,
     filterSector:    v => v.sector,
     filterMesa:      v => v.mesa,
     filterRegistrar: v => v.registrado_por_nombre,
@@ -1735,7 +1725,7 @@ function populateDynamicFilters(voters) {
     if (!el) return;
     const prev = el.value;
     const vals = [...new Set(voters.map(getter).filter(Boolean))].sort();
-    const allLabel = selId === 'filterMunicipio' ? 'Todas' : selId === 'filterMesa' ? 'Todas' : 'Todos';
+    const allLabel = selId === 'filterMesa' ? 'Todas' : 'Todos';
     el.innerHTML = `<option value="">${allLabel}</option>`;
     vals.forEach(v => el.innerHTML += `<option value="${v}">${v}</option>`);
     if (vals.includes(prev)) el.value = prev;
@@ -1745,18 +1735,16 @@ function populateDynamicFilters(voters) {
 function applyFilters() {
   const search    = (document.getElementById('searchInput')?.value || '').toLowerCase();
   const province  = document.getElementById('filterProvince')?.value  || '';
-  const municipio = document.getElementById('filterMunicipio')?.value || '';
   const sector    = document.getElementById('filterSector')?.value    || '';
   const mesa      = document.getElementById('filterMesa')?.value      || '';
   const role      = document.getElementById('filterRole')?.value      || '';
   const registrar = document.getElementById('filterRegistrar')?.value || '';
 
   APP.filteredVoters = APP.allVoters.filter(v => {
-    const text = [v.nombre, v.cedula, v.telefono, v.zona, v.recinto, v.sector, v.mesa, v.municipio].join(' ').toLowerCase();
+    const text = [v.nombre, v.cedula, v.telefono, v.zona, v.recinto, v.sector, v.mesa].join(' ').toLowerCase();
     return (
       (!search    || text.includes(search)) &&
       (!province  || v.provincia === province) &&
-      (!municipio || v.municipio === municipio) &&
       (!sector    || v.sector === sector) &&
       (!mesa      || v.mesa === mesa) &&
       (!role      || v.registrado_por_rol === role) &&
@@ -1769,7 +1757,7 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  ['searchInput','filterProvince','filterMunicipio','filterSector','filterMesa','filterRole','filterRegistrar']
+  ['searchInput','filterProvince','filterSector','filterMesa','filterRole','filterRegistrar']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   APP.filteredVoters = [...APP.allVoters];
   APP.votersPage = 1; // Volver a primera página al limpiar
@@ -1844,7 +1832,6 @@ function exportToExcel() {
     'Teléfono':          v.telefono      || '',
     'Región':            v.region        || '',
     'Municipio':         v.provincia     || '',
-    'Sección':           v.municipio     || '',
     'Distrito':          v.distrito      || '',
     'Zona':              v.zona          || '',
     'Sector':            v.sector        || '',
@@ -1857,6 +1844,23 @@ function exportToExcel() {
   }));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [
+    { wch: 32 }, // Nombre
+    { wch: 14 }, // Cédula
+    { wch: 16 }, // Teléfono
+    { wch: 14 }, // Región
+    { wch: 20 }, // Municipio
+    { wch: 18 }, // Distrito
+    { wch: 14 }, // Zona
+    { wch: 18 }, // Sector
+    { wch: 8  }, // Mesa
+    { wch: 22 }, // Recinto
+    { wch: 30 }, // Observación
+    { wch: 24 }, // Registrado por
+    { wch: 16 }, // Rol registrador
+    { wch: 16 }, // Fecha
+  ];
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
   XLSX.utils.book_append_sheet(wb, ws, 'Registros Peravia');
   XLSX.writeFile(wb, `Peravia_Registros_${new Date().toISOString().substring(0,10)}.xlsx`);
   showNotif('success', 'Exportado', `${data.length} registros exportados.`);
@@ -1876,6 +1880,15 @@ function exportAuditToExcel() {
   }));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [
+    { wch: 20 }, // Fecha/Hora
+    { wch: 28 }, // Actor
+    { wch: 16 }, // Rol
+    { wch: 20 }, // Acción
+    { wch: 18 }, // Objetivo
+    { wch: 50 }, // Detalles
+  ];
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
   XLSX.utils.book_append_sheet(wb, ws, 'Auditoría');
   XLSX.writeFile(wb, `Peravia_Auditoria_${new Date().toISOString().substring(0,10)}.xlsx`);
   logAudit('AUDIT_EXPORT', null, `Exportación de auditoría: ${data.length} registros`);
@@ -2200,7 +2213,7 @@ function bindEvents() {
 
   document.getElementById('closeDupVoterBtn')?.addEventListener('click', () => closeModal('duplicateVoterModal'));
 
-  const filterIds = ['searchInput','filterProvince','filterMunicipio','filterSector','filterMesa','filterRole','filterRegistrar'];
+  const filterIds = ['searchInput','filterProvince','filterSector','filterMesa','filterRole','filterRegistrar'];
   filterIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', applyFilters);

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="bgApple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3BA5A5"/>
+      <stop offset="100%" stop-color="#1D6B6B"/>
+    </linearGradient>
+  </defs>
+  <!-- iOS aplica su propia máscara redondeada, fondo full-bleed -->
+  <rect width="180" height="180" fill="url(#bgApple)"/>
+  <text
+    x="90" y="120"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="104"
+    font-weight="700"
+    fill="#FFFFFF"
+    text-anchor="middle"
+    dominant-baseline="auto"
+  >P</text>
+  <text
+    x="90" y="151"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="12"
+    font-weight="600"
+    fill="rgba(255,255,255,0.72)"
+    text-anchor="middle"
+    letter-spacing="3"
+  >PERAVIA</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3BA5A5"/>
+      <stop offset="100%" stop-color="#1D6B6B"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background — requerido para maskable icon -->
+  <rect width="512" height="512" fill="url(#bg512)"/>
+  <!-- Contenido dentro del safe zone (≥10% padding = 51px → área segura 410×410 centrada) -->
+  <text
+    x="256" y="338"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="285"
+    font-weight="700"
+    fill="#FFFFFF"
+    text-anchor="middle"
+    dominant-baseline="auto"
+  >P</text>
+  <text
+    x="256" y="418"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="36"
+    font-weight="600"
+    fill="rgba(255,255,255,0.72)"
+    text-anchor="middle"
+    letter-spacing="9"
+  >PERAVIA</text>
+</svg>
