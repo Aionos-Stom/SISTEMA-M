@@ -766,7 +766,6 @@ async function handleRegister(e) {
   const phone      = document.getElementById('registerPhone').value.trim();
   const role       = document.getElementById('registerRole').value;
   const province   = document.getElementById('registerProvince').value;
-  const region     = document.getElementById('registerRegion').value.trim();
   const distrito   = document.getElementById('registerDistrito').value.trim();
   const zone       = document.getElementById('registerZone').value.trim();
   const password   = document.getElementById('registerPassword').value;
@@ -823,7 +822,6 @@ async function handleRegister(e) {
           p_telefono:        phone,
           p_rol:             role,
           p_provincia:       province,
-          p_region:          region,
           p_distrito:        distrito,
           p_zona:            zone,
         });
@@ -855,7 +853,6 @@ async function handleRegister(e) {
           telefono:  phone,
           rol:       role,
           provincia: province,
-          region,
           distrito,
           zona:      zone,
           estado:    estadoFallback,
@@ -1211,7 +1208,6 @@ async function handleUserEdit(e) {
     telefono:        document.getElementById('editUserPhone').value.trim(),
     rol:             document.getElementById('editUserRole').value,
     provincia:       document.getElementById('editUserProvince').value,
-    region:          document.getElementById('editUserRegion').value.trim(),
     distrito:        document.getElementById('editUserDistrito').value.trim(),
     zona:            document.getElementById('editUserZone').value.trim(),
   };
@@ -1257,7 +1253,6 @@ function openEditUser(user) {
   document.getElementById('editUserPhone').value      = user.telefono        || '';
   document.getElementById('editUserRole').value       = user.rol             || '';
   document.getElementById('editUserProvince').value   = user.provincia       || '';
-  document.getElementById('editUserRegion').value     = user.region          || '';
   document.getElementById('editUserDistrito').value   = user.distrito        || '';
   document.getElementById('editUserZone').value       = user.zona            || '';
 
@@ -1500,7 +1495,7 @@ function renderUsersTable(users) {
   const tbody = document.getElementById('usersTableBody');
   if (!tbody) return;
   if (!users.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="11">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       No hay usuarios para mostrar.
     </td></tr>`;
@@ -1525,7 +1520,6 @@ function renderUsersTable(users) {
       <td style="font-size:0.8rem">${esc(u.email)}</td>
       <td><span class="status-badge ${getUserRoleClass(u.rol)}">${esc(u.rol)}</span></td>
       <td>${esc(u.telefono || '—')}</td>
-      <td>${esc(u.region || '—')}</td>
       <td>${esc(u.provincia || '—')}</td>
       <td>${esc(u.distrito || '—')}</td>
       <td>${esc(u.zona || '—')}</td>
