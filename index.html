@@ -387,8 +387,7 @@
           </div>
         </div>
 
-        <div class="main-grid">
-          <div class="card form-card">
+        <div class="card form-card">
             <div class="card-header">
               <div class="form-head">
                 <div>
@@ -463,63 +462,68 @@
 
             <div class="status-message" id="voterMessage" role="alert" aria-live="polite"></div>
           </div>
-
-          <div class="card search-card" id="consultaQuickCard">
-            <div class="card-header">
-              <h3>Consulta rápida</h3>
-              <p>Filtre por nombre, cédula, registrador o territorio.</p>
-            </div>
-            <div class="input-group">
-              <label for="searchInput">Búsqueda general</label>
-              <input type="search" id="searchInput" placeholder="Nombre, cédula, teléfono, recinto…" />
-            </div>
-            <div class="compact-grid">
-              <div class="input-group">
-                <label for="filterProvince">Municipio</label>
-                <select id="filterProvince"><option value="">Todos</option></select>
-              </div>
-            </div>
-            <div class="grid-2 compact-grid">
-              <div class="input-group">
-                <label for="filterSector">Sector</label>
-                <select id="filterSector"><option value="">Todos</option></select>
-              </div>
-              <div class="input-group">
-                <label for="filterMesa">Mesa</label>
-                <select id="filterMesa"><option value="">Todas</option></select>
-              </div>
-            </div>
-            <div class="grid-2 compact-grid">
-              <div class="input-group">
-                <label for="filterRole">Rol registrador</label>
-                <select id="filterRole"><option value="">Todos</option></select>
-              </div>
-              <div class="input-group">
-                <label for="filterRegistrar">Registrador</label>
-                <select id="filterRegistrar"><option value="">Todos</option></select>
-              </div>
-            </div>
-            <button class="clear-btn" id="clearFiltersBtn" type="button" style="margin-top: 8px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              Limpiar filtros
-            </button>
-            <div class="search-results" id="searchResults" role="list" aria-live="polite"></div>
-          </div>
-        </div>
       </section>
 
       <!-- ════════════════════════════
            PANEL: CONSULTA
       ═══════════════════════════════ -->
       <section class="content-panel" id="panelConsulta">
-        <div class="card table-card">
+
+        <!-- Barra de búsqueda y filtros -->
+        <div class="card search-card" id="consultaQuickCard">
           <div class="card-header row-between">
+            <div>
+              <h3>Buscar registros</h3>
+              <p>Filtre por nombre, cédula, municipio, registrador y más.</p>
+            </div>
+            <span class="badge" id="filteredCountBadge">0 resultados</span>
+          </div>
+
+          <div class="input-group" style="margin-bottom:10px">
+            <label for="searchInput">Búsqueda general</label>
+            <input type="search" id="searchInput" placeholder="Nombre, cédula, teléfono, recinto…" autocomplete="off" />
+          </div>
+
+          <div class="grid-2 compact-grid">
+            <div class="input-group">
+              <label for="filterProvince">Municipio</label>
+              <select id="filterProvince"><option value="">Todos</option></select>
+            </div>
+            <div class="input-group">
+              <label for="filterSector">Sector</label>
+              <select id="filterSector"><option value="">Todos</option></select>
+            </div>
+          </div>
+          <div class="grid-2 compact-grid" style="margin-top:8px">
+            <div class="input-group">
+              <label for="filterMesa">Mesa</label>
+              <select id="filterMesa"><option value="">Todas</option></select>
+            </div>
+            <div class="input-group">
+              <label for="filterRegistrar">Registrador</label>
+              <select id="filterRegistrar"><option value="">Todos</option></select>
+            </div>
+          </div>
+          <div class="grid-2 compact-grid" style="margin-top:8px">
+            <div class="input-group">
+              <label for="filterRole">Rol registrador</label>
+              <select id="filterRole"><option value="">Todos</option></select>
+            </div>
+            <div style="display:flex;align-items:flex-end">
+              <button class="clear-btn" id="clearFiltersBtn" type="button" style="width:100%">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Limpiar filtros
+              </button>
+            </div>
+          </div>
+          <div class="search-results" id="searchResults" role="list" aria-live="polite"></div>
+        </div>
+
+        <div class="card table-card">
+          <div class="card-header">
             <div>
               <h3>Registros de Peravia</h3>
               <p>Listado consolidado según nivel de acceso del usuario.</p>
-            </div>
-            <div class="badge-box">
-              <span class="badge" id="filteredCountBadge">0 resultados</span>
             </div>
           </div>
 
