@@ -1618,10 +1618,48 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ── Safe area: notch / home bar iOS ─────────────────────────── */
 @supports (padding: max(0px)) {
-  .topbar  { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
-  .sidebar { padding-bottom: env(safe-area-inset-bottom); }
+  .topbar {
+    padding-top:    env(safe-area-inset-top);
+    height:         calc(60px + env(safe-area-inset-top));
+    padding-left:   max(14px, env(safe-area-inset-left));
+    padding-right:  max(14px, env(safe-area-inset-right));
+  }
+  .sidebar {
+    padding-top:    env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
   .modal-card { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 }
+
+/* ── Banner de instalación PWA ────────────────────────────────── */
+.pwa-banner {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 9999;
+  background: var(--surface);
+  border: 1.5px solid var(--teal);
+  border-radius: var(--r-lg);
+  box-shadow: 0 8px 32px rgba(42,138,138,0.18);
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  min-width: 300px; max-width: calc(100vw - 40px);
+  animation: pwa-slide-up 0.35s ease;
+}
+.pwa-banner[hidden] { display: none; }
+@keyframes pwa-slide-up {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.pwa-banner-icon {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: var(--teal); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: #fff; font-weight: 800; font-size: 1.2rem;
+}
+.pwa-banner-body { flex: 1; min-width: 0; }
+.pwa-banner-body strong { display: block; font-size: 0.9rem; color: var(--text); }
+.pwa-banner-body span   { font-size: 0.78rem; color: var(--text-secondary); }
+.pwa-banner-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.pwa-banner-actions .primary-btn  { padding: 7px 14px; font-size: 0.8rem; }
+.pwa-banner-actions .text-btn     { font-size: 0.75rem; text-align: center; }
 
 /* ══════════════════════════════════════════════════════
    21. SECCIÓN USUARIOS — Mejoras de UX y colores de rol

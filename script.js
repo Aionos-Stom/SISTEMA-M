@@ -6,8 +6,55 @@
 'use strict';
 
 // xlsx-js-style (colores) carga después de xlsx estándar (fallback).
-// XLSXStyle o la versión que haya sobreescrito XLSX — tomamos la mejor disponible.
 window.XLSX = window.XLSXStyle || window.XLSX;
+
+/* ── PWA Install Prompt ──────────────────────────────────── */
+let _pwaPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  // Mostrar banner 4 segundos después de que la app esté lista
+  setTimeout(_showPwaBanner, 4000);
+});
+
+window.addEventListener('appinstalled', () => {
+  _hidePwaBanner();
+  _pwaPrompt = null;
+});
+
+function _showPwaBanner() {
+  const b = document.getElementById('pwaInstallBanner');
+  if (b) b.hidden = false;
+}
+function _hidePwaBanner() {
+  const b = document.getElementById('pwaInstallBanner');
+  if (b) b.hidden = true;
+}
+function _triggerPwaInstall() {
+  if (!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.then(() => { _pwaPrompt = null; _hidePwaBanner(); });
+}
+
+// Detección iOS: mostrar guía manual (iOS no soporta beforeinstallprompt)
+function _checkIosPwaPrompt() {
+  const isIos     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  if (!isIos || isStandalone) return;
+  const dismissed = sessionStorage.getItem('pwa-ios-dismissed');
+  if (dismissed) return;
+  setTimeout(() => {
+    const b = document.getElementById('pwaInstallBanner');
+    if (!b) return;
+    b.querySelector('.pwa-banner-body strong').textContent = 'Instalar en iPhone';
+    b.querySelector('.pwa-banner-body span').textContent   = 'Toca  ⬆  Compartir → "Añadir a inicio"';
+    const btn = b.querySelector('#pwaInstallBtn');
+    btn.textContent = 'Entendido';
+    btn.onclick = () => { sessionStorage.setItem('pwa-ios-dismissed','1'); _hidePwaBanner(); };
+    b.hidden = false;
+  }, 4000);
+}
 
 /* ── CONFIGURACIÓN ─────────────────────────────────────── */
 const SUPABASE_URL  = 'https://nmvqqbwfotvslwxkohrt.supabase.co';
@@ -889,9 +936,8 @@ async function handleForgotPassword(e) {
   const email = document.getElementById('forgotEmail').value.trim();
   if (!email) return showStatusMsg('forgotMessage', 'error', 'Ingrese su correo.');
   try {
-    const { error } = await getSupabase().auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + window.location.pathname
-    });
+    const redirectTo = window.location.href.split('#')[0].split('?')[0];
+    const { error } = await getSupabase().auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
     showStatusMsg('forgotMessage', 'success', 'Se envió el enlace de recuperación a su correo.');
     await getSupabase().from('auditoria').insert({
@@ -1717,6 +1763,7 @@ function populateDynamicFilters(voters) {
     filterSector:    v => v.sector,
     filterMesa:      v => v.mesa,
     filterRegistrar: v => v.registrado_por_nombre,
+    filterRole:      v => v.registrado_por_rol,
   };
   Object.entries(fields).forEach(([selId, getter]) => {
     const el = document.getElementById(selId);
@@ -1739,7 +1786,11 @@ function applyFilters() {
   const registrar = document.getElementById('filterRegistrar')?.value || '';
 
   APP.filteredVoters = APP.allVoters.filter(v => {
-    const text = [v.nombre, v.cedula, v.telefono, v.zona, v.recinto, v.sector, v.mesa].join(' ').toLowerCase();
+    const text = [
+      v.nombre, v.cedula, v.telefono, v.zona,
+      v.recinto, v.sector, v.mesa, v.observacion,
+      v.registrado_por_nombre,
+    ].map(x => (x == null ? '' : String(x))).join(' ').toLowerCase();
     return (
       (!search    || text.includes(search)) &&
       (!province  || v.provincia === province) &&
@@ -1774,7 +1825,8 @@ function handleTopbarSearch(query) {
     if (!query.trim()) return;
     const q = query.toLowerCase();
     const results = APP.allVoters.filter(v =>
-      [v.nombre, v.cedula, v.telefono, v.municipio, v.zona].join(' ').toLowerCase().includes(q)
+      [v.nombre, v.cedula, v.telefono, v.provincia, v.zona, v.sector, v.recinto]
+        .map(x => (x == null ? '' : String(x))).join(' ').toLowerCase().includes(q)
     ).slice(0, 8);
     renderQuickSearch(results, query);
   }, 300);
@@ -2452,7 +2504,9 @@ function bindEvents() {
   const filterIds = ['searchInput','filterProvince','filterSector','filterMesa','filterRole','filterRegistrar'];
   filterIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', applyFilters);
+    if (!el) return;
+    el.addEventListener('input',  applyFilters);
+    el.addEventListener('change', applyFilters);
   });
   document.getElementById('clearFiltersBtn')?.addEventListener('click', clearFilters);
 
@@ -2484,6 +2538,16 @@ function bindEvents() {
   document.getElementById('profilePhotoInput')?.addEventListener('change', handlePhotoUpload);
   document.getElementById('removePhotoBtn')?.addEventListener('click', removeProfilePhoto);
   document.getElementById('profileForm')?.addEventListener('submit', handleProfileUpdate);
+
+  // PWA install banner buttons
+  document.getElementById('pwaInstallBtn')?.addEventListener('click', _triggerPwaInstall);
+  document.getElementById('pwaDismissBtn')?.addEventListener('click', () => {
+    _hidePwaBanner();
+    sessionStorage.setItem('pwa-dismissed', '1');
+  });
+
+  // Mostrar guía iOS si aplica
+  _checkIosPwaPrompt();
 }
 
 /* ══════════════════════════════════════════════════════════
