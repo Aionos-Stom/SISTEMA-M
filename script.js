@@ -356,8 +356,9 @@ async function init() {
     return;
   }
 
-  // Solo TOKEN_REFRESHED y SIGNED_OUT — NO SIGNED_IN (evita auto-login desde sesión guardada)
   const sb = getSupabase();
+
+  // Escuchar cambios de sesión (refresh de token y cierre de sesión)
   if (sb?.auth?.onAuthStateChange) {
     sb.auth.onAuthStateChange((event, session) => {
       if (event === 'TOKEN_REFRESHED' && session) {
@@ -370,6 +371,27 @@ async function init() {
         showAuth();
       }
     });
+  }
+
+  // Intentar restaurar sesión guardada en localStorage (instantáneo, sin red)
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+      // Cargar perfil con timeout para no bloquearse
+      const { data: profile } = await withTimeout(
+        sb.from('usuarios').select('*').eq('auth_user_id', session.user.id).maybeSingle(),
+        8000, 'perfil'
+      );
+      if (profile && profile.estado === 'aprobado') {
+        APP.currentUser    = session.user;
+        APP.currentProfile = profile;
+        _warmUpSupabase();
+        showDashboard();
+        return;
+      }
+    }
+  } catch (_) {
+    // Si falla la restauración, caer al login normalmente
   }
 
   showAuth();

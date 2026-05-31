@@ -8,7 +8,7 @@
   "display": "standalone",
   "background_color": "#F8F3EA",
   "theme_color": "#2A8A8A",
-  "orientation": "any",
+  "orientation": "portrait",
   "lang": "es",
   "dir": "ltr",
   "categories": ["government", "productivity"],
