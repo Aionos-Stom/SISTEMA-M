@@ -244,17 +244,21 @@ body {
 .auth-hero { display: flex; flex-direction: column; align-items: center; gap: 0; }
 
 .auth-hero-emblem {
-  width: 100px; height: 100px;
-  background: rgba(255,255,255,0.12);
-  border: 2.5px solid rgba(255,255,255,0.25);
-  border-radius: var(--r-xl);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display);
-  font-size: 2rem; font-weight: 700;
-  color: #fff;
+  width: 220px;
   margin-bottom: 28px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.30), 0 0 0 8px rgba(255,255,255,0.05);
-  letter-spacing: -0.02em;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.93);
+  padding: 16px 14px 12px;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.22),
+    0 0 0 1px rgba(255,255,255,0.18);
+}
+.auth-hero-logo-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .auth-hero-title {
@@ -325,6 +329,30 @@ body {
   margin: 0 auto;
 }
 .auth-main-header { margin-bottom: 24px; flex-shrink: 0; }
+.auth-logo-wrap {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+}
+.auth-logo-img {
+  height: 44px;
+  width: auto;
+  max-width: 240px;
+  object-fit: contain;
+  display: block;
+  mix-blend-mode: multiply;
+}
+
+/* Dark mode: contenedor blanco para que el PNG con fondo blanco no choque con el surface oscuro */
+[data-theme="dark"] .auth-logo-wrap {
+  background: rgba(255,255,255,0.93);
+  border-radius: 10px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+[data-theme="dark"] .auth-logo-img {
+  mix-blend-mode: multiply;
+}
 
 .auth-brand-pill {
   display: inline-flex;
@@ -545,13 +573,14 @@ body {
 }
 .sidebar-emblem {
   width: 38px; height: 38px; flex-shrink: 0;
-  background: var(--orange);
   border-radius: var(--r-sm);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-display);
-  font-size: 1.1rem; font-weight: 700; color: #fff;
-  letter-spacing: -0.02em;
-  box-shadow: 0 3px 10px rgba(232,87,42,0.40);
+}
+.sidebar-logo-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.30));
 }
 .sidebar-brand strong { display: block; font-size: 0.88rem; font-weight: 700; color: #fff; line-height: 1.25; }
 .sidebar-brand span   { font-size: 0.68rem; color: var(--sidebar-text); }
@@ -1083,26 +1112,25 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* Marca */
 .mg-footer-brand { display: flex; align-items: center; gap: 14px; }
-.mg-footer-monogram {
-  width: 44px; height: 44px; flex-shrink: 0;
-  background: linear-gradient(135deg, #2d838b 0%, #1D6B6B 100%);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 14px rgba(45,131,139,0.35);
-  position: relative; overflow: hidden;
+.mg-footer-logo-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
-.mg-mono-m {
-  font-family: var(--font-display);
-  font-size: 1.1rem; font-weight: 800;
-  color: #fff; line-height: 1;
-  letter-spacing: -0.04em;
+.mg-footer-logo-img {
+  height: 22px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  display: block;
+  mix-blend-mode: multiply;
 }
-.mg-mono-g {
-  font-family: 'Pacifico', cursive, var(--font-display);
-  font-size: 0.95rem; font-weight: 400;
-  color: rgba(255,255,255,0.85); line-height: 1;
-  margin-left: -2px;
+[data-theme="dark"] .mg-footer-logo-wrap {
+  background: rgba(255,255,255,0.90);
+  border-radius: 8px;
+  padding: 4px 12px;
 }
+[data-theme="dark"] .mg-footer-logo-img { mix-blend-mode: multiply; }
 .mg-footer-brand-text { display: flex; flex-direction: column; gap: 2px; }
 .mg-footer-name {
   font-family: var(--font-display);
@@ -1151,6 +1179,8 @@ tbody tr:last-child td { border-bottom: none; }
 @media (max-width: 600px) {
   .mg-footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
   .mg-footer-actions { align-items: flex-start; }
+  .mg-footer-brand { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .mg-footer-logo-img { height: 16px; max-width: 120px; }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1488,6 +1518,13 @@ tbody tr:last-child td { border-bottom: none; }
   .auth-main-inner { padding: 32px 24px 24px; max-width: 100%; }
   .auth-footer { padding: 12px 24px 20px; }
 
+  /* Logo en formulario: centrado en móvil */
+  .auth-logo-wrap { justify-content: center; margin-bottom: 20px; }
+  .auth-logo-img  { height: 40px; max-width: 220px; }
+
+  /* Footer logo en móvil */
+  .mg-footer-logo-img { height: 18px; max-width: 130px; }
+
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .sidebar-toggle { display: flex; }
@@ -1652,7 +1689,12 @@ tbody tr:last-child td { border-bottom: none; }
 .pwa-banner-icon {
   width: 42px; height: 42px; border-radius: 12px;
   background: var(--teal); display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; color: #fff; font-weight: 800; font-size: 1.2rem;
+  flex-shrink: 0; overflow: hidden; padding: 6px;
+}
+.pwa-icon-img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .pwa-banner-body { flex: 1; min-width: 0; }
 .pwa-banner-body strong { display: block; font-size: 0.9rem; color: var(--text); }

@@ -4,8 +4,16 @@
    Supabase / CDN / fuentes → siempre red.
 ══════════════════════════════════════════════ */
 
-const CACHE = 'peravia-v1';
-const STATIC = ['./', './index.html', './styles.css', './script.js'];
+const CACHE = 'peravia-v3';
+const STATIC = [
+  './',
+  './index.html',
+  './styles.css',
+  './script.js',
+  './manifest.json',
+  './images/icon-192.png',
+  './images/icon-512.png'
+];
 
 /* ── Instalación: pre-cachear el app shell ─ */
 self.addEventListener('install', event => {
